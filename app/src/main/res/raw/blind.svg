@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Converted with SVG Converter - Version 0.9.5 (Compiled Mon May 30 09:18:17 2011) - Copyright (C) 2011 Nokia -->
+
+<svg
+    xmlns:dc="http://purl.org/dc/elements/1.1/"
+    xmlns:cc="http://creativecommons.org/ns#"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:svg="http://www.w3.org/2000/svg"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+    width="36"
+    version="1.1"
+    height="32"
+    id="svg3092"
+    inkscape:version="0.48.1 r9760"
+    sodipodi:docname="button.svg">
+ <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1320"
+     inkscape:window-height="1123"
+     id="namedview12183"
+     showgrid="true"
+     inkscape:zoom="22.627417"
+     inkscape:cx="19.15633"
+     inkscape:cy="15.025466"
+     inkscape:window-x="389"
+     inkscape:window-y="0"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg3092">
+  <inkscape:grid
+      type="xygrid"
+      id="grid12185"
+      empspacing="5"
+      visible="true"
+      enabled="true"
+      snapvisiblegridlinesonly="true" />
+ </sodipodi:namedview>
+ <defs
+     id="defs3094">
+  <radialGradient
+      fx="17.864586"
+      fy="15.999999"
+      cx="17.864586"
+      cy="15.999999"
+      gradientTransform="matrix(1.3714287,-7.8784533e-8,6.4012425e-8,1.1142857,-6.5000057,-1.828569)"
+      id="radialGradient4010"
+      r="17.5"
+      gradientUnits="userSpaceOnUse">
+   <stop
+       offset="0"
+       style="stop-color:#e0e0e0;stop-opacity:1;"
+       id="stop7758" />
+   <stop
+       offset="0.69999999"
+       style="stop-color:#e0e0e0;stop-opacity:0.627451;"
+       id="stop7760" />
+   <stop
+       offset="1"
+       style="stop-color:#e0e0e0;stop-opacity:0;"
+       id="stop7762" />
+  </radialGradient>
+  <radialGradient
+      fx="17.864586"
+      fy="15.999999"
+      cx="17.864586"
+      cy="15.999999"
+      gradientTransform="matrix(1.3714287,-7.8784533e-8,6.4012425e-8,1.1142857,-6.5000057,-1.828569)"
+      id="radialGradient7850"
+      r="17.5"
+      gradientUnits="userSpaceOnUse">
+   <stop
+       offset="0"
+       style="stop-color:#e0e0e0;stop-opacity:1;"
+       id="stop12154" />
+   <stop
+       offset="0.69999999"
+       style="stop-color:#e0e0e0;stop-opacity:0.627451;"
+       id="stop12156" />
+   <stop
+       offset="1"
+       style="stop-color:#e0e0e0;stop-opacity:0;"
+       id="stop12158" />
+  </radialGradient>
+  <linearGradient
+      gradientTransform="scale(2.7809235,0.35959277)"
+      id="linearGradient653"
+      y1="236.83635"
+      y2="232.12435"
+      x1="88.033608"
+      x2="88.033477"
+      gradientUnits="userSpaceOnUse">
+   <stop
+       offset="0"
+       style="stop-color:#000;stop-opacity:1;"
+       id="stop651" />
+   <stop
+       offset="1"
+       style="stop-color:#fff;stop-opacity:1;"
+       id="stop652" />
+  </linearGradient>
+  <linearGradient
+      id="linearGradient650">
+   <stop
+       offset="0"
+       style="stop-color:#000;stop-opacity:1;"
+       id="stop12164" />
+   <stop
+       offset="1"
+       style="stop-color:#fff;stop-opacity:1;"
+       id="stop12166" />
+  </linearGradient>
+  <linearGradient
+      gradientTransform="scale(0.3937145,2.5399116)"
+      id="linearGradient654"
+      y1="92.572312"
+      y2="92.572312"
+      x1="1086.3559"
+      x2="1077.1402"
+      gradientUnits="userSpaceOnUse">
+   <stop
+       offset="0"
+       style="stop-color:#000;stop-opacity:1;"
+       id="stop12169" />
+   <stop
+       offset="1"
+       style="stop-color:#fff;stop-opacity:1;"
+       id="stop12171" />
+  </linearGradient>
+ </defs>
+ <metadata
+     id="metadata3097">
+  <rdf:RDF>
+   <cc:Work
+       rdf:about="">
+    <dc:format>image/svg+xml</dc:format>
+    <dc:type
+        rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <rect
+     width="35"
+     x="0.5"
+     y="0.5"
+     ry="7"
+     height="31"
+     style="fill:url(#radialGradient7850);fill-opacity:1;fill-rule:evenodd;stroke:none"
+     id="rect3100" />
+ <g
+     id="g845"
+     transform="matrix(0.04676212,0,0,0.04676212,7.0561293,4.6771717)">
+ </g>
+ <path
+     style="fill:#ffffff;fill:url(#linearGradient654);fill-opacity:1;stroke:#7377f7;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+     d="M21 16
+     c0 1.654-1.346 3-3 3
+     s-3-1.346-3-3 1.346-3 3-3 3 1.346 3 3z
+     m9-.449
+     s-4.252 8.449-11.985 8.449
+     c-7.18 0-12.015-8.449-12.015-8.449
+     s4.446-7.551 12.015-7.551
+     c7.694 0 11.985 7.551 11.985 7.551z
+     m-7 .449c0-2.757-2.243-5-5-5
+     s-5 2.243-5 5 2.243 5 5 5 5-2.243 5-5z"
+     id="path12189"
+     inkscape:connector-curvature="0" />
+</svg>
