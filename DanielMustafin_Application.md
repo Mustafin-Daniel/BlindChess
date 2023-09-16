@@ -1,5 +1,5 @@
 # Мустафин Даниэль - "CaecusChess"
-### Группа: 10И1
+### Группа: 11И1
 ### VK: https://vk.com/id585267166
 ### Email: daniel.mustafin.2007@gmail.com 
 **[ НАЗВАНИЕ ПРОЕКТА ]** <br /> 
