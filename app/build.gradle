@@ -53,11 +53,6 @@ android {
     dataBinding {
         enabled = true
     }
-    externalNativeBuild {
-        ndkBuild {
-            path file('src/main/cpp/Android.mk')
-        }
-    }
     buildFeatures{
         dataBinding=true
     }
@@ -79,28 +74,3 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0"
 }
-task buildEco {
-    def a = "buildSrc/src/main/java/chess/eco.pgn"
-    def b = "CaecusChessApp/src/main/assets/eco.dat"
-    chess.EcoBuilder.main2(a, b)
-}
-preBuild.dependsOn buildEco
-
-task copyToAssets(type: Copy, dependsOn: 'externalNativeBuildRelease') {
-    from('build/intermediates/ndkBuild/release/obj/local') {
-        include '*/stockfish'
-        include '*/stockfish_nosimd'
-    }
-    into 'src/main/assets'
-}
-tasks.withType(JavaCompile) {
-    t -> t.dependsOn copyToAssets
-}
-android {
-    applicationVariants.all { variant ->
-        tasks["merge${variant.name.capitalize()}Assets"]
-                .dependsOn(copyToAssets)
-    }
-}
-
-

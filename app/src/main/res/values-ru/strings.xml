@@ -333,7 +333,7 @@
     <string name="prefs_viewPieceSet_title">Выбрать фигуры</string>
     <string name="prefs_viewPieceSet_summary">Выберите набор шахматных фигур</string>
     <string name="prefs_blindMode_title">Режим игры в слепую</string>
-    <string name="prefs_blindMode_summary">Показать чистую доску вместо фигур</string>
+    <string name="prefs_blindMode_summary">Показать  доску с кружками вместо фигур</string>
     <string name="prefs_pgn_import">Импортирование PGN</string>
     <string name="prefs_importVariations_title">Изменения</string>
     <string name="prefs_importVariations_summary">Включить ходы по неглавным линяям</string>
@@ -353,18 +353,11 @@
     <string name="prefs_exportTime_title">Часы</string>
     <string name="prefs_exportTime_summary">Включить информацию о времени для каждого хода</string>
     <string name="prefs_egtbSettings_title">Базы данных эндшпилей</string>
-    <string name="prefs_tbHints_title">Показывать подсказки</string>
     <string name="prefs_tbHints_summary">Показывать оценку из базы данных для возможных ходов фигуры при прикосновении к ней</string>
     <string name="prefs_tbHintsEdit_title">Редактировать подсказки на доске</string>
     <string name="prefs_tbHintsEdit_summary">Показывать оценку из базы данных для возможных запасных ходов фигуры при прикосновении к ней в режиме редактирования доски</string>
     <string name="prefs_tbRootProbe_title">Зондирование Root</string>
     <string name="prefs_tbRootProbe_summary">Фильтровать неоптимальные ходы перед началом поиска</string>
-    <string name="prefs_tbEngineProbe_title">Зондирование движка</string>
-    <string name="prefs_tbEngineProbe_summary">Включить tablebase зондирование в двигатель, когда поддерживается</string>
-    <string name="prefs_gtbPath_title">Директория GTB</string>
-    <string name="prefs_gtbPath_summary">Директория, где инсталлирована база данных Гавиоты. Оставить пустой для использования директории по умолчанию</string>
-    <string name="prefs_guideShowOnStart_title">Руководство по запуску</string>
-    <string name="prefs_guideShowOnStart_summary">Показать начальное руководство в следующий раз, когда программа будет запущена.</string>
     <string name="tour_leftMenu_title">Левое меню</string>
     <string name="tour_leftMenu_desc">Чтобы открыть меню слева, нажмите на в левой части заголовка или проведите от левой к правой стороне экрана.</string>
     <string name="tour_rightMenu_title">Правое меню</string>

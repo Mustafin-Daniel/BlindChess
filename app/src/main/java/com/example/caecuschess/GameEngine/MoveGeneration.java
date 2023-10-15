@@ -119,7 +119,6 @@ public class MoveGeneration {
             return moveList;
         }
 
-        //Here should be the stupid error
     public static ArrayList<Move> removeIllegal(Position pos, ArrayList<Move> moveList){
         ArrayList<Move> ret = new ArrayList<>();
         UndoInfo ui = new UndoInfo();
@@ -186,11 +185,11 @@ public class MoveGeneration {
 
             if(!wm){
                 if(x<7 && y>1){
-                    checkDirection(pos, sq, 1, -7);
+                    p=checkDirection(pos, sq, 1, -7);
                     if(p==Piece.WPAWN) return true;
                 }
                 if(x>0 && y>1){
-                    checkDirection(pos, sq, 1, -9);
+                    p=checkDirection(pos, sq, 1, -9);
                     if(p==Piece.WPAWN) return true;
                 }
             }

@@ -353,19 +353,12 @@
     <string name="prefs_exportPlayerAction_summary" translatable="false">Include information about draw and resign actions</string>
     <string name="prefs_exportTime_title" translatable="false">Clock</string>
     <string name="prefs_exportTime_summary" translatable="false">Include time information for each move</string>
-    <string name="prefs_egtbSettings_title" translatable="false">Endgame Tablebases</string>
-    <string name="prefs_tbHints_title" translatable="false">Show Hints</string>
     <string name="prefs_tbHints_summary" translatable="false">When touching a piece, show tablebase value for all possible moves by that piece</string>
     <string name="prefs_tbHintsEdit_title" translatable="false">Edit Board Hints</string>
     <string name="prefs_tbHintsEdit_summary" translatable="false">When touching a piece in edit board mode, show tablebase value for all possible alternate positions of that piece</string>
     <string name="prefs_tbRootProbe_title" translatable="false">Probe at Root</string>
     <string name="prefs_tbRootProbe_summary" translatable="false">Filter out non-optimal moves before starting search</string>
-    <string name="prefs_tbEngineProbe_title" translatable="false">Engine Probing</string>
-    <string name="prefs_tbEngineProbe_summary" translatable="false">Enable tablebase probing in engine, when supported</string>
     <string name="prefs_gtbPath_title" translatable="false">GTB Directory</string>
-    <string name="prefs_gtbPath_summary" translatable="false">Directory where Gaviota tablebases are installed. Leave blank to use default directory</string>
-    <string name="prefs_guideShowOnStart_title" translatable="false">Startup Guide</string>
-    <string name="prefs_guideShowOnStart_summary" translatable="false">Show the startup guide the next time the program is started.</string>
     <string name="tour_leftMenu_title" translatable="false">Left Menu</string>
     <string name="tour_leftMenu_desc" translatable="false">To open the left menu, tap on the left side of the title bar or swipe from the left side of the screen towards the right side.</string>
     <string name="tour_rightMenu_title" translatable="false">Right Menu</string>
@@ -695,4 +688,6 @@
         <item>German Speech</item>
         <item>Spanish Speech</item>
     </string-array>
+    <string name="prefs_blindMode_summary" translatable="false">Play with circles instead of pieces</string>
+    <string name="prefs_egtbSettings_title">Endgame tablebase</string>
 </resources>

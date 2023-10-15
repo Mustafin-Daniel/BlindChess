@@ -49,9 +49,6 @@ import com.example.caecuschess.R;
 import com.example.caecuschess.Util;
 import com.example.caecuschess.Util.MaterialDiff;
 import com.example.caecuschess.activities.util.ChessBoardEdit;
-import com.example.caecuschess.view.ChessBoard.SquareDecoration;
-import com.example.caecuschess.tb.Probe;
-import com.example.caecuschess.tb.ProbeResult;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -196,7 +193,6 @@ public class EditBoard extends Activity {
                             Move m = cb.mousePressed(sq);
                             if (m != null)
                                 doMove(m);
-                            setEgtbHints(cb.getSelectedSquare());
                         }
                     }
                     break;
@@ -338,27 +334,8 @@ public class EditBoard extends Activity {
 
     private void setSelection(int sq) {
         cb.setSelection(sq);
-        setEgtbHints(sq);
     }
 
-    private void setEgtbHints(int sq) {
-        if (!egtbHints || (sq < 0)) {
-            cb.setSquareDecorations(null);
-            return;
-        }
-
-        Probe gtbProbe = Probe.getInstance();
-        ArrayList<Pair<Integer,ProbeResult>> x = gtbProbe.relocatePieceProbe(cb.pos, sq);
-        if (x == null) {
-            cb.setSquareDecorations(null);
-            return;
-        }
-
-        ArrayList<SquareDecoration> sd = new ArrayList<>();
-        for (Pair<Integer,ProbeResult> p : x)
-            sd.add(new SquareDecoration(p.first, p.second));
-        cb.setSquareDecorations(sd);
-    }
 
     private void doMove(Move m) {
         if (m.SQto < 0) {
