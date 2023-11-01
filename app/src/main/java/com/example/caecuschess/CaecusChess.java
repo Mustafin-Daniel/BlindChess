@@ -19,25 +19,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.content.res.Resources.NotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Typeface;
 import android.graphics.drawable.StateListDrawable;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.StrictMode;
-import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Pair;
@@ -51,13 +48,16 @@ import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.view.ViewGroup.LayoutParams;
 import android.view.WindowManager;
-import android.webkit.WebView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView.ScaleType;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -74,8 +74,10 @@ import com.example.caecuschess.GameEngine.ChessError;
 import com.example.caecuschess.GameEngine.DroidChessController;
 import com.example.caecuschess.GameEngine.GameTree.Node;
 import com.example.caecuschess.GameEngine.Move;
+import com.example.caecuschess.GameEngine.MoveGeneration;
 import com.example.caecuschess.GameEngine.Position;
 import com.example.caecuschess.GameEngine.TextInfo;
+import com.example.caecuschess.GameEngine.UndoInfo;
 import com.example.caecuschess.activities.CPUWarning;
 import com.example.caecuschess.activities.EditBoard;
 import com.example.caecuschess.activities.EditPGNLoad;
@@ -96,10 +98,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeMap;
 
 import tourguide.TourGuide;
@@ -110,17 +116,7 @@ public class CaecusChess extends Activity
                                   ActivityCompat.OnRequestPermissionsResultCallback {
     private ChessBoardPlay cb;
     DroidChessController ctrl = null;
-    private boolean mShowThinking;
-    private boolean mShowStats;
-    private boolean fullPVLines;
-    private int numPV;
-    private boolean mWhiteBasedScores;
-    private boolean mShowBookHints;
-    private int mEcoHints;
-    private int maxNumArrows;
     GameMode gameMode;
-    private boolean mPonderMode;
-    private int movesPerSession;
     private String playerName;
     private boolean boardFlipped;
     private boolean autoSwapSides;
@@ -130,13 +126,12 @@ public class CaecusChess extends Activity
     private TextView status;
     private ScrollView moveListScroll;
     private MoveListView moveList;
-    private View thinkingScroll;
     private TextView thinking;
     private View buttons;
     private ImageButton modeButton, undoButton, redoButton, blindButton, flipButton;
-    private TextView whiteTitleText, blackTitleText, engineTitleText;
+    private TextView whiteTitleText, blackTitleText;
     private View secondTitleLine;
-    private TextView whiteFigText, blackFigText, summaryTitleText;
+    private TextView whiteFigText, blackFigText;
     private Dialog moveListMenuDlg;
 
     private DrawerLayout drawerLayout;
@@ -155,7 +150,6 @@ public class CaecusChess extends Activity
     private boolean leftHanded;
     private boolean animateMoves;
     private boolean autoScrollTitle;
-    private boolean showVariationLine;
 
     private int autoMoveDelay; // Delay in auto forward/backward mode
     enum AutoMode {
@@ -185,17 +179,12 @@ public class CaecusChess extends Activity
     private BookOptions bookOptions = new BookOptions();
     private PGNOptions pgnOptions = new PGNOptions();
 
-    private long lastVisibleMillis; // Time when GUI became invisible. 0 if currently visible.
-
     private PgnScreenText gameTextListener;
 
     private Typeface figNotation;
     private Typeface defaultThinkingListTypeFace;
 
     private TourGuide tourGuide;
-
-    private Speech speech;
-
 
     /** Defines all configurable button actions. */
     ActionFactory actionFactory = new ActionFactory() {
@@ -382,57 +371,10 @@ public class CaecusChess extends Activity
 
         figNotation = Typeface.createFromAsset(getAssets(), "fonts/CaecusChessChessNotationDark.otf");
         setPieceNames(PGNOptions.PT_LOCAL);
-        initUI();
+        initMenu();
+        //initUI();
 
-        gameTextListener = new PgnScreenText(this, pgnOptions);
-        moveList.setOnLinkClickListener(gameTextListener);
-        ctrl = new DroidChessController(this, gameTextListener, pgnOptions);
-        egtbForceReload = true;
-        if (speech == null)
-            speech = new Speech();
-        readPrefs(false);
-        ctrl.newGame(gameMode);
-        setAutoMode(AutoMode.OFF);
-        {
-            byte[] data = null;
-            int version = 1;
-            if (savedInstanceState != null) {
-                byte[] token = savedInstanceState.getByteArray("gameStateT");
-                if (token != null)
-                    data = cache.retrieveBytes(token);
-                version = savedInstanceState.getInt("gameStateVersion", version);
-            } else {
-                String dataStr = settings.getString("gameState", null);
-                version = settings.getInt("gameStateVersion", version);
-                if (dataStr != null)
-                    data = strToByteArr(dataStr);
-            }
-            if (data != null)
-                ctrl.fromByteArray(data, version);
-        }
-        ctrl.setGuiPaused(true);
-        ctrl.setGuiPaused(false);
-        ctrl.startGame();
-        if (intentPgnOrFen != null) {
-            try {
-                ctrl.setFENOrPGN(intentPgnOrFen, true);
-                setBoardFlip(true);
-            } catch (ChessError e) {
-                // If FEN corresponds to illegal chess position, go into edit board mode.
-                try {
-                    TextInfo.readFEN(intentPgnOrFen);
-                } catch (ChessError e2) {
-                    if (e2.pos != null)
-                        startEditBoard(TextInfo.intoFEN(e2.pos));
-                }
-            }
-        } else if (intentFilename != null) {
-            if (intentFilename.toLowerCase(Locale.US).endsWith(".fen") ||
-                intentFilename.toLowerCase(Locale.US).endsWith(".epd"))
-                loadFENFromFile(intentFilename);
-            else
-                loadPGNFromFile(intentFilename);
-        }
+
     }
 
     @Override
@@ -648,6 +590,244 @@ public class CaecusChess extends Activity
 
     }
 
+    private void initMenu(){
+        setContentView(R.layout.main_menu);
+        Button btnColorTest = findViewById(R.id.btnColorTest);
+        btnColorTest.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                setContentView(R.layout.color_test);
+                RadioGroup modeRadioGroup = findViewById(R.id.radiocolortestmode);
+                RadioGroup colorRadioGroup = findViewById(R.id.colorRadioGroup);
+                RadioGroup timeRadioGroup = findViewById(R.id.timerRadioGroup);
+                TextView square = findViewById(R.id.tv_square_color);
+                Button submitOptBtn = findViewById(R.id.btn_submit);
+                colorRadioGroup.setVisibility(View.GONE);
+                Button whiteBtn = findViewById(R.id.whiteRadioButton);
+                Button blackBtn = findViewById(R.id.blackRadioButton);
+                final int[] counter = {0};
+
+                submitOptBtn.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if ((modeRadioGroup.getCheckedRadioButtonId()==R.id.radio_bullet && timeRadioGroup.getCheckedRadioButtonId()!=-1) || modeRadioGroup.getCheckedRadioButtonId()==R.id.radio_training) {
+                            timeRadioGroup.setVisibility(View.GONE);
+                            colorRadioGroup.setVisibility(View.VISIBLE);
+                            modeRadioGroup.setVisibility(View.GONE);
+
+                            square.setText(generateRandomSq());
+                            RadioButton timeBtn=findViewById(timeRadioGroup.getCheckedRadioButtonId());
+                            if(modeRadioGroup.getCheckedRadioButtonId()==R.id.radio_bullet) {
+                                int timer=startTimer((String) timeBtn.getText());
+
+                                CountDownTimer time = new CountDownTimer(timer, 1000) {
+                                    @Override
+                                    public void onTick(long millisUntilFinished) {
+
+                                    }
+
+                                    @Override
+                                    public void onFinish() {
+                                        Toast.makeText(CaecusChess.this, "Timer is up. Score: "+counter[0], Toast.LENGTH_SHORT).show();
+                                        colorRadioGroup.setVisibility(View.GONE);
+                                        timeRadioGroup.setVisibility(View.VISIBLE);
+                                        timeRadioGroup.clearCheck();
+                                        modeRadioGroup.setVisibility(View.VISIBLE);
+                                        modeRadioGroup.clearCheck();
+                                        colorRadioGroup.setVisibility(View.GONE);
+                                        submitOptBtn.setVisibility(View.VISIBLE);
+                                        square.setText("Square");
+                                        counter[0]=0;
+                                    }
+                                };
+
+                                time.start();
+                            }
+                            submitOptBtn.setVisibility(View.GONE);
+                        }
+                    }
+
+                });
+
+                whiteBtn.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        boolean isCorr=checkSq((String) square.getText(),true);
+                        if(isCorr){
+                            square.setText(generateRandomSq());
+                            counter[0]++;
+                        }else{
+                            square.setText(generateRandomSq());
+                            Toast.makeText(CaecusChess.this, "oops", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+                blackBtn.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        boolean isCorr=checkSq((String) square.getText(),false);
+                        if(isCorr){
+                            square.setText(generateRandomSq());
+                            counter[0]++;
+                        }else{
+                            square.setText(generateRandomSq());
+                            Toast.makeText(CaecusChess.this, "oops", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+
+            }
+        });
+
+        Button btnSequenceMaster = findViewById(R.id.btnSequenceMaster);
+        btnSequenceMaster.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                setContentView(R.layout.sequence_master);
+                SeekBar slider = findViewById(R.id.smseekbar);
+                RadioGroup smTimeGroup = findViewById(R.id.smTimeGroup);
+                final int[] numMove={5};
+                slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                    @Override
+                    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                        Toast.makeText(CaecusChess.this, getString(R.string.memorizeText)+": "+String.valueOf(progress+1), Toast.LENGTH_SHORT).show();
+                        numMove[0] = progress+1;
+                    }
+
+                    @Override
+                    public void onStartTrackingTouch(SeekBar seekBar) {
+                    }
+
+                    @Override
+                    public void onStopTrackingTouch(SeekBar seekBar) {
+
+                    }
+                });
+                Button smBtnSubmit = findViewById(R.id.smsubmit);
+                TextView smmoves = findViewById(R.id.smmoves);
+                final Position[] endpos = new Position[1];
+
+                smBtnSubmit.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        RadioButton timeBtn = findViewById(smTimeGroup.getCheckedRadioButtonId());
+                        if (timeBtn!=null){
+                            smBtnSubmit.setVisibility(View.GONE);
+                            smmoves.setVisibility(View.VISIBLE);
+                            int timer=startTimer((String) timeBtn.getText());
+
+                            ArrayList<Move> mList = new ArrayList<>();
+                            String moveListText = "";
+                            try {
+                                Position pos=TextInfo.readFEN(TextInfo.startPosFEN);
+                                for (int i=1; i<=numMove[0]; i++){
+                                    ArrayList<Move> moves = MoveGeneration.instance.generateLegalMoves(pos);
+                                    Random random = new Random();
+                                    Move randomMove = moves.get(random.nextInt(moves.size()));
+                                    mList.add(randomMove);
+                                    UndoInfo ui = new UndoInfo();
+                                    moveListText+=String.valueOf(i)+". ";
+                                    moveListText+=(TextInfo.moveToString(pos, randomMove, false, false));
+                                    moveListText+=" ";
+                                    pos.makeMove(randomMove, ui);
+
+                                    moves = MoveGeneration.instance.generateLegalMoves(pos);
+                                    randomMove = moves.get(random.nextInt(moves.size()));
+                                    mList.add(randomMove);
+                                    ui = new UndoInfo();
+                                    moveListText+=(TextInfo.moveToString(pos, randomMove, false, false));
+                                    moveListText+=" ";
+                                    pos.makeMove(randomMove, ui);
+                                }
+                                endpos[0]=pos;
+                            } catch (ChessError e) {
+                                Toast.makeText(CaecusChess.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+
+                            smmoves.setText(moveListText);
+
+                            CountDownTimer time = new CountDownTimer(timer, 1000) {
+                                @Override
+                                public void onTick(long millisUntilFinished) {
+                                }
+
+                                @Override
+                                public void onFinish() {
+                                    initUI();
+                                    gameTextListener = new PgnScreenText(CaecusChess.this, pgnOptions);
+                                    moveList.setOnLinkClickListener(gameTextListener);
+                                    ctrl = new DroidChessController(CaecusChess.this, gameTextListener, pgnOptions);
+                                    ctrl.type=1;
+                                    ctrl.corrMoveList=mList;
+                                    egtbForceReload = true;
+                                    readPrefs(false);
+                                    ctrl.newGame(gameMode);
+                                    setAutoMode(AutoMode.OFF);
+                                    ctrl.setGuiPaused(true);
+                                    ctrl.setGuiPaused(false);
+                                    ctrl.startGame();
+                                    setBoardFlip(true);
+
+                                    CountDownTimer tim = new CountDownTimer(Long.MAX_VALUE, 1000) {
+                                        @Override
+                                        public void onTick(long millisUntilFinished) {
+                                            if (Arrays.equals(cb.pos.getSquares(), endpos[0].getSquares())) {
+                                                setContentView(R.layout.sequence_master);
+                                                smBtnSubmit.setVisibility(View.VISIBLE);
+                                                smmoves.setVisibility(View.GONE);
+                                                Toast.makeText(CaecusChess.this, "Good job", Toast.LENGTH_SHORT).show();
+                                                try {
+                                                    endpos[0]=TextInfo.readFEN(TextInfo.startPosFEN);
+                                                } catch (ChessError e) {
+                                                }
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onFinish() {
+                                        }
+                                    };
+                                    tim.start();
+                                }
+                            };
+
+                            time.start();
+                        }
+                    }
+                });
+            }
+        });
+
+        Button btnBlindChess = findViewById(R.id.btnBlindChess);
+        btnBlindChess.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                initUI();
+                gameTextListener = new PgnScreenText(CaecusChess.this, pgnOptions);
+                moveList.setOnLinkClickListener(gameTextListener);
+                ctrl = new DroidChessController(CaecusChess.this, gameTextListener, pgnOptions);
+                egtbForceReload = true;
+                readPrefs(false);
+                ctrl.newGame(gameMode);
+                setAutoMode(AutoMode.OFF);
+                ctrl.setGuiPaused(true);
+                ctrl.setGuiPaused(false);
+                ctrl.startGame();
+                setBoardFlip(true);
+                cb.setBlindMode(true);
+            }
+        });
+    }
+
+    @Override
+    public void onBackPressed() {
+        initMenu();
+    }
+
+
+
     private void initUI() {
         leftHanded = leftHandedView();
         setContentView(leftHanded ? R.layout.main_left_handed : R.layout.main);
@@ -660,7 +840,6 @@ public class CaecusChess extends Activity
         whiteTitleText.setSelected(true);
         blackTitleText = findViewById(R.id.black_clock);
         blackTitleText.setSelected(true);
-        engineTitleText = findViewById(R.id.title_text);
         whiteFigText = findViewById(R.id.white_pieces);
         whiteFigText.setTypeface(figNotation);
         whiteFigText.setSelected(true);
@@ -669,12 +848,10 @@ public class CaecusChess extends Activity
         blackFigText.setTypeface(figNotation);
         blackFigText.setSelected(true);
         blackFigText.setTextColor(blackTitleText.getTextColors());
-        summaryTitleText = findViewById(R.id.title_text_summary);
 
         status = findViewById(R.id.status);
         moveListScroll = findViewById(R.id.scrollView);
         moveList = findViewById(R.id.moveList);
-        thinkingScroll = findViewById(R.id.scrollViewBot);
         thinking = findViewById(R.id.thinking);
         defaultThinkingListTypeFace = thinking.getTypeface();
         status.setFocusable(false);
@@ -716,12 +893,6 @@ public class CaecusChess extends Activity
 
         moveList.setOnLongClickListener(v -> {
             reShowDialog(MOVELIST_MENU_DIALOG);
-            return true;
-        });
-        thinking.setOnLongClickListener(v -> {
-            if (mShowThinking || gameMode.analysisMode())
-                if (!pvMoves.isEmpty())
-                    reShowDialog(THINKING_MENU_DIALOG);
             return true;
         });
 
@@ -780,7 +951,6 @@ public class CaecusChess extends Activity
 
     @Override
     protected void onResume() {
-        lastVisibleMillis = 0;
         if (ctrl != null)
             ctrl.setGuiPaused(false);
         notificationActive = true;
@@ -799,7 +969,6 @@ public class CaecusChess extends Activity
             editor.putInt("gameStateVersion", serializeVersion);
             editor.apply();
         }
-        lastVisibleMillis = System.currentTimeMillis();
         super.onPause();
     }
 
@@ -807,8 +976,6 @@ public class CaecusChess extends Activity
     protected void onDestroy() {
         setAutoMode(AutoMode.OFF);
         setNotification(false);
-        if (speech != null)
-            speech.shutdown();
         super.onDestroy();
     }
 
@@ -833,12 +1000,6 @@ public class CaecusChess extends Activity
         cb.highlightLastMove = settings.getBoolean("highlightLastMove", true);
         cb.setUltraBlindMode(settings.getBoolean("ultrablindMode", false));
 
-        mShowThinking = settings.getBoolean("showThinking", false);
-        mShowStats = settings.getBoolean("showStats", true);
-        mWhiteBasedScores = settings.getBoolean("whiteBasedScores", false);
-        maxNumArrows = getIntSetting("thinkingArrows", 4);
-        mShowBookHints = settings.getBoolean("bookHints", false);
-        mEcoHints = getIntSetting("ecoHints", ECO_HINTS_AUTO);
 
         autoMoveDelay = getIntSetting("autoDelay", 5000);
 
@@ -889,7 +1050,6 @@ public class CaecusChess extends Activity
         pgnOptions.view.headers     = settings.getBoolean("viewHeaders",        false);
         final int oldViewPieceType = pgnOptions.view.pieceType;
         pgnOptions.view.pieceType   = getIntSetting("viewPieceType", PGNOptions.PT_LOCAL);
-        showVariationLine           = settings.getBoolean("showVariationLine",  false);
         pgnOptions.imp.variations   = settings.getBoolean("importVariations",   true);
         pgnOptions.imp.comments     = settings.getBoolean("importComments",     true);
         pgnOptions.imp.nag          = settings.getBoolean("importNAG",          true);
@@ -934,6 +1094,42 @@ public class CaecusChess extends Activity
             thinking.setTypeface(defaultThinkingListTypeFace);
             thinking.setTextSize(fontSize);
         }
+    }
+
+    private String generateRandomSq(){
+        Random random = new Random();
+        char file = (char) (random.nextInt(8) + 'A');
+        int rank = random.nextInt(8) + 1;
+        String square = String.valueOf(file) + rank;
+        return square;
+    }
+
+    private boolean checkSq(String sq, boolean isWhite){
+        char file = sq.charAt(0);
+        int rank = Character.getNumericValue(sq.charAt(1));
+
+        boolean isBlackSquare = (file % 2 == 0 && rank % 2 == 0) || (file % 2 != 0 && rank % 2 != 0);
+
+        boolean isCorrectColor = (isBlackSquare && !isWhite) || (!isBlackSquare && isWhite);
+        return isCorrectColor;
+    }
+
+    private int startTimer(String Timer){
+        switch (Timer){
+            case "5 sec":
+                return 5000;
+            case "10 sec":
+                return 10000;
+            case "15 sec":
+                return 15000;
+            case "30 sec":
+                return 30000;
+            case "1 min":
+                return 60000;
+            default:
+                return -1;
+        }
+
     }
 
     /** Enable/disable title bar scrolling. */
@@ -1489,83 +1685,6 @@ public class CaecusChess extends Activity
         return line.substring(0, maxLen);
     }
 
-/*    private void updateThinkingInfo() {
-        boolean thinkingEmpty = true;
-        {
-            StringBuilder sb = new StringBuilder(128);
-            if (mShowThinking || gameMode.analysisMode()) {
-                if (!thinkingStr1.isEmpty()) {
-                    if (fullPVLines) {
-                        sb.append(thinkingStr1);
-                    } else {
-                        String[] lines = thinkingStr1.split("\n");
-                        int w = thinking.getWidth();
-                        for (int i = 0; i < lines.length; i++) {
-                            String line = lines[i];
-                            if (i > 0)
-                                sb.append('\n');
-                            int n = thinking.getPaint().breakText(line, true, w, null);
-                            sb.append(truncateLine(lines[i], n));
-                        }
-                    }
-                    thinkingEmpty = false;
-                }
-                if (mShowStats) {
-                    if (!thinkingEmpty)
-                        sb.append('\n');
-                    sb.append(thinkingStr2);
-                    if (!thinkingStr2.isEmpty()) thinkingEmpty = false;
-                }
-            }
-            thinking.setText(sb.toString(), TextView.BufferType.SPANNABLE);
-        }
-        int maxDistToEcoTree = 10;
-        if ((mEcoHints == ECO_HINTS_ALWAYS ||
-            (mEcoHints == ECO_HINTS_AUTO && distToEcoTree <= maxDistToEcoTree)) &&
-            !ecoInfoStr.isEmpty()) {
-            String s = thinkingEmpty ? "" : "<br>";
-            s += ecoInfoStr;
-            thinking.append(Html.fromHtml(s));
-            thinkingEmpty = false;
-        }
-        if (mShowBookHints && !bookInfoStr.isEmpty() && ctrl.humansTurn()) {
-            String s = thinkingEmpty ? "" : "<br>";
-            s += Util.boldStart + getString(R.string.book) + Util.boldStop + bookInfoStr;
-            thinking.append(Html.fromHtml(s));
-            thinkingEmpty = false;
-        }
-        if (showVariationLine && (variantStr.indexOf(' ') >= 0)) {
-            String s = thinkingEmpty ? "" : "<br>";
-            s += Util.boldStart + getString(R.string.variation) + Util.boldStop + variantStr;
-            thinking.append(Html.fromHtml(s));
-            thinkingEmpty = false;
-        }
-        thinking.setVisibility(thinkingEmpty ? View.GONE : View.VISIBLE);
-
-        List<Move> hints = null;
-        if (mShowThinking || gameMode.analysisMode()) {
-            ArrayList<ArrayList<Move>> pvMovesTmp = pvMoves;
-            if (pvMovesTmp.size() == 1) {
-                hints = pvMovesTmp.get(0);
-            } else if (pvMovesTmp.size() > 1) {
-                hints = new ArrayList<>();
-                for (ArrayList<Move> pv : pvMovesTmp)
-                    if (!pv.isEmpty())
-                        hints.add(pv.get(0));
-            }
-        }
-        if ((hints == null) && mShowBookHints)
-            hints = bookMoves;
-        if (((hints == null) || hints.isEmpty()) &&
-            (variantMoves != null) && variantMoves.size() > 1) {
-            hints = variantMoves;
-        }
-        if ((hints != null) && (hints.size() > maxNumArrows)) {
-            hints = hints.subList(0, maxNumArrows);
-        }
-        cb.setMoveHints(hints);
-    }*/ //TODO Remove this damn
-
     static private final int PROMOTE_DIALOG = 0;
     static         final int BOARD_MENU_DIALOG = 1;
     static private final int ABOUT_DIALOG = 2;
@@ -1625,7 +1744,6 @@ public class CaecusChess extends Activity
     }
 
     private void startNewGame() {
-        speech.flushQueue();
         ctrl.newGame(gameMode);
         ctrl.startGame();
         setBoardFlip(true);

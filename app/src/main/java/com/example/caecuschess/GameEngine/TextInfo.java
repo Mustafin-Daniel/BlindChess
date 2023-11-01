@@ -111,97 +111,97 @@ public class TextInfo {
             }
         }
 
-            if(words[1].length()>0){
-                boolean wm;
-                switch (words[1].charAt(0)){
-                    case 'w':
-                        wm=true;
+        if(words[1].length()>0){
+            boolean wm;
+            switch (words[1].charAt(0)){
+                case 'w':
+                    wm=true;
+                    break;
+                case 'b':
+                    wm=false;
+                    break;
+                default: throw new ChessError("Invalid side", pos);
+            }
+            pos.setWhiteMove(wm);
+        } else{
+            throw new ChessError("Invalid side", pos);
+        }
+
+        int cm = 0; // CastleMask
+        if(words.length>2){
+            for(int i=0; i < words[2].length(); i++){
+                char c = words[2].charAt(i);
+                switch (c) {
+                    case 'K':
+                        cm |= (1<<Position.BlackShortCastleMask);
                         break;
-                    case 'b':
-                        wm=false;
+                    case 'Q':
+                        cm |= (1<<Position.BlackLongCastleMask); //'|= is bitwise or'
                         break;
-                    default: throw new ChessError("Invalid side", pos);
-                }
-                pos.setWhiteMove(wm);
-            } else{
-                throw new ChessError("Invalid side", pos);
-            }
-
-            int cm = 0; // CastleMask
-            if(words.length>2){
-                for(int i=0; i < words[2].length(); i++){
-                    char c = words[2].charAt(i);
-                    switch (c) {
-                        case 'K':
-                            cm |= (1<<Position.BlackShortCastleMask);
-                            break;
-                        case 'Q':
-                            cm |= (1<<Position.BlackLongCastleMask); //'|= is bitwise or'
-                            break;
-                        case 'k':
-                            cm |= (1<<Position.WhiteShortCastleMask);
-                            break;
-                        case 'q':
-                            cm |= (1<<Position.WhiteLongCastleMask);
-                            break;
-                        case '-': break;
-                        default: throw new ChessError("Invalid castling", pos);
-                    }
+                    case 'k':
+                        cm |= (1<<Position.WhiteShortCastleMask);
+                        break;
+                    case 'q':
+                        cm |= (1<<Position.WhiteLongCastleMask);
+                        break;
+                    case '-': break;
+                    default: throw new ChessError("Invalid castling", pos);
                 }
             }
-            pos.setCastleMask(cm);
-            removeWrongCastleFlags(pos);
+        }
+        pos.setCastleMask(cm);
+        removeWrongCastleFlags(pos);
 
-            if(words.length > 3) {
-                String epStr = words[3];
-                if(!epStr.equals("-")){
-                    if(epStr.length()<2) throw new ChessError("Invalid enPassant", pos);
-                    int epSq = getSquare(epStr);
-                    if(epSq!=-1){
-                        if(pos.whiteMove){
-                            if((Position.getY(epSq)!=5)||(pos.getPiece(epSq)!=Piece.EMPTY)||(pos.getPiece(epSq-8)!=Piece.BPAWN)){
-                                epSq=-1;
-                            }
+        if(words.length > 3) {
+            String epStr = words[3];
+            if(!epStr.equals("-")){
+                if(epStr.length()<2) throw new ChessError("Invalid enPassant", pos);
+                int epSq = getSquare(epStr);
+                if(epSq!=-1){
+                    if(pos.whiteMove){
+                        if((Position.getY(epSq)!=5)||(pos.getPiece(epSq)!=Piece.EMPTY)||(pos.getPiece(epSq-8)!=Piece.BPAWN)){
+                            epSq=-1;
                         }
-                        else {
-                            if((Position.getY(epSq)!=2)||(pos.getPiece(epSq)!=Piece.EMPTY)||(pos.getPiece(epSq+8)!=Piece.WPAWN)){
-                                epSq = -1;
-                            }
-                        }
-                        pos.setEpSquare(epSq);
                     }
+                    else {
+                        if((Position.getY(epSq)!=2)||(pos.getPiece(epSq)!=Piece.EMPTY)||(pos.getPiece(epSq+8)!=Piece.WPAWN)){
+                            epSq = -1;
+                        }
+                    }
+                    pos.setEpSquare(epSq);
                 }
             }
+        }
 
-            //Update draw timer and move counter
-            try{
-                if(words.length>4){
-                    pos.DrawTimer=Integer.parseInt(words[4]);
-                }
-                if(words.length>5){
-                    pos.MoveCounter=Integer.parseInt(words[5]);
-                }
-            } catch (NumberFormatException nfe){}
-
-            int[] numPieces = new int[Piece.NumPieces];
-            for(int i=0; i<Piece.NumPieces; i++){
-                numPieces[i]=0;
+        //Update draw timer and move counter
+        try{
+            if(words.length>4){
+                pos.DrawTimer=Integer.parseInt(words[4]);
             }
-
-            for(int x=0; x<8; x++){
-                for(int y=0; y<8; y++){
-                    numPieces[pos.getPiece(Position.getSquare(x, y))]++;
-                }
+            if(words.length>5){
+                pos.MoveCounter=Integer.parseInt(words[5]);
             }
+        } catch (NumberFormatException nfe){}
 
-            if(numPieces[Piece.WKING] != 1){
-                throw new ChessError("White must have only one king", pos);
-            }
-            if(numPieces[Piece.BKING] != 1){
-                throw new ChessError("Black must have only one king", pos);
-            }
+        int[] numPieces = new int[Piece.NumPieces];
+        for(int i=0; i<Piece.NumPieces; i++){
+            numPieces[i]=0;
+        }
 
-            //TODO add this if necessary
+        for(int x=0; x<8; x++){
+            for(int y=0; y<8; y++){
+                numPieces[pos.getPiece(Position.getSquare(x, y))]++;
+            }
+        }
+
+        if(numPieces[Piece.WKING] != 1){
+            throw new ChessError("White must have only one king", pos);
+        }
+        if(numPieces[Piece.BKING] != 1){
+            throw new ChessError("Black must have only one king", pos);
+        }
+
+        //TODO add this if necessary
         /*
 
             int maxWPawns = 8;
@@ -223,15 +223,15 @@ public class TextInfo {
                 throw new ChessError("Too many black pieces", pos);
             }
         */
-            Position pos2 = new Position(pos);
-            pos2.setWhiteMove(!pos.whiteMove);
-            if(MoveGeneration.inCheck(pos2)){
-                throw new ChessError("King capture can happen", pos);
-            }
-
-            legalEPSquare(pos);
-            return pos;
+        Position pos2 = new Position(pos);
+        pos2.setWhiteMove(!pos.whiteMove);
+        if(MoveGeneration.inCheck(pos2)){
+            throw new ChessError("King capture can happen", pos);
         }
+
+        legalEPSquare(pos);
+        return pos;
+    }
 
     public static void removeWrongCastleFlags(Position pos) {
         int castleMask = pos.getCastleMask();

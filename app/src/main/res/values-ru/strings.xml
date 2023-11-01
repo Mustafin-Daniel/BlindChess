@@ -377,6 +377,12 @@
     <string name="buttonDesc_back">Кнопка перехода назад</string>
     <string name="buttonDesc_forward">Кнопка перехода вперед</string>
     <string name="blind_button" translatable="false"> Переключить слепой режим </string>
+    <string name="bullet">Пуля</string>
+    <string name="training">Тренировка</string>
+    <string name="submit">Подтвердить</string>
+    <string name="square_color">Цвет клетки</string>
+    <string name="square">Клетка</string>
+    <string name="memorizeText">Кол-во ходов запомнить</string> />
     <string-array name="viewPieceType_texts">
         <item>Международная</item>
         <item>Русская</item>

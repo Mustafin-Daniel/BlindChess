@@ -71,6 +71,10 @@ public class Position {
         return true;
     }
 
+    public int[] getSquares() {
+        return squares;
+    }
+
     /** Check if two positions are equal by the perspective of threefold repetition */
     final public boolean isDrawRuleEqual(Position pos){
         for(int i=0; i<64; i++){

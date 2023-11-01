@@ -111,15 +111,6 @@ public class PieceSet {
         return bitmapTable[pType];
     }
 
-    public Bitmap getUBlindPieceBitmap(int pType, int sqSize) {
-        if (sqSize != cachedSquareSize) {
-            recycleBitmaps();
-            createUBlindBitmaps(sqSize);
-            cachedSquareSize = sqSize;
-        }
-        return bitmapTable[pType];
-    }
-
     public Bitmap getBlindPieceBitmap(int pType, int sqSize, boolean ubm) {
         if (sqSize != cachedSquareSize) {
             recycleBitmaps();

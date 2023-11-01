@@ -3,7 +3,6 @@ package com.example.caecuschess.view;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
@@ -18,11 +17,11 @@ import com.example.caecuschess.GameEngine.Piece;
 import com.example.caecuschess.GameEngine.Position;
 import com.example.caecuschess.GameEngine.UndoInfo;
 import com.example.caecuschess.PieceSet;
+import com.example.caecuschess.activities.util.ChessBoardEdit;
 import com.example.caecuschess.tb.ProbeResult;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 public abstract class ChessBoard extends View {
     public Position pos;
@@ -487,6 +486,21 @@ public abstract class ChessBoard extends View {
                 canvas.rotate(180, xCrd + sqSize * 0.5f, yCrd + sqSize * 0.5f);
             }
             canvas.drawBitmap(bm, xCrd, yCrd, piecePaint);
+            if (rotate)
+                canvas.restore();
+        }
+    }
+
+    protected final void drawEditPiece(Canvas canvas, int xCrd, int yCrd, int p){
+        Bitmap newbm;
+        newbm = PieceSet.instance().getPieceBitmap(p, sqSize);
+        if (newbm != null) {
+            boolean rotate = flipped & false; // Disabled for now
+            if (rotate) {
+                canvas.save();
+                canvas.rotate(180, xCrd + sqSize * 0.5f, yCrd + sqSize * 0.5f);
+            }
+            canvas.drawBitmap(newbm, xCrd, yCrd, piecePaint);
             if (rotate)
                 canvas.restore();
         }

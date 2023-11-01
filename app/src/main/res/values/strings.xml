@@ -378,6 +378,10 @@
     <string name="buttonDesc_back" translatable="false">Backward button</string>
     <string name="buttonDesc_forward"  translatable="false">Forward button</string>
     <string name="blind_button" translatable="false">Toggle blind mode</string>
+    <string name="main_button_squares" translatable="false">Color Test</string>
+    <string name="main_button_sequence" translatable="false">Sequence Master</string>
+    <string name="main_button_memory" translatable="false">Memory Wizard</string>
+    <string name="main_button_play" translatable="false">Blind Chess</string>
     <string-array name="viewPieceType_texts">
         <item>English letters</item>
         <item>Local language letters</item>
@@ -690,4 +694,10 @@
     </string-array>
     <string name="prefs_blindMode_summary" translatable="false">Play with circles instead of pieces</string>
     <string name="prefs_egtbSettings_title">Endgame tablebase</string>
+    <string name="bullet">Bullet</string>
+    <string name="training">Training</string>
+    <string name="submit">Submit</string>
+    <string name="square_color">Square Color</string>
+    <string name="square">Square</string>
+    <string name="memorizeText">Moves to Memorize</string>>/>
 </resources>

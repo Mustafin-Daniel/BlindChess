@@ -1,0 +1,134 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/layout_mode_selection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="100dp"
+        android:orientation="vertical">
+
+        <RadioGroup
+            android:id="@+id/radiocolortestmode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="center"
+            >
+
+            <RadioButton
+                android:id="@+id/radio_bullet"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/bullet"
+                android:textSize="20sp"
+                />
+
+            <RadioButton
+                android:id="@+id/radio_training"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/training"
+                android:textSize="20sp"/>
+        </RadioGroup>
+
+
+
+        <Button
+            android:id="@+id/btn_submit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/submit"
+            android:layout_marginTop="10dp"
+            android:layout_gravity="center"
+            android:textSize="20sp"
+            />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layout_square"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/layout_mode_selection"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="100dp"
+        android:orientation="vertical"
+        android:layout_marginBottom="50dp">
+
+        <TextView
+            android:id="@+id/tv_square_color"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/square"
+            android:textSize="30sp"
+            android:layout_gravity="center"
+            />
+
+
+
+    </LinearLayout>
+
+    <RadioGroup
+        android:id="@+id/colorRadioGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/layout_square"
+        android:orientation="horizontal"
+        android:layout_centerHorizontal="true"
+
+        >
+
+        <Button
+            android:id="@+id/blackRadioButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/black"
+            android:textSize="20sp"
+            android:layout_gravity="center"
+            />
+
+        <Button
+            android:id="@+id/whiteRadioButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/white"
+            android:textSize="20sp"
+            android:layout_gravity="center"
+            />
+    </RadioGroup>
+
+    <RadioGroup
+        android:id="@+id/timerRadioGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/colorRadioGroup"
+        android:orientation="horizontal"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="10dp">
+
+        <RadioButton
+            android:id="@+id/seconds15RadioButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="15 sec"
+            android:textSize="20sp"/>
+
+        <RadioButton
+            android:id="@+id/seconds30RadioButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="30 sec"
+            android:textSize="20sp"/>
+
+        <RadioButton
+            android:id="@+id/minutes1RadioButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1 min"
+            android:textSize="20sp"/>
+    </RadioGroup>
+
+</RelativeLayout>
