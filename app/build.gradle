@@ -1,13 +1,15 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
+
 
 android {
     namespace 'com.example.caecuschess'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.example.caecuschess"
         minSdk 24
-        targetSdk 33
+        targetSdk 34
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -53,14 +55,10 @@ android {
     dataBinding {
         enabled = true
     }
-    externalNativeBuild {
-        ndkBuild {
-            path file('src/main/cpp/Android.mk')
-        }
-    }
     buildFeatures{
         dataBinding=true
     }
+    buildToolsVersion '34.0.0'
 }
 
 
@@ -70,6 +68,10 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'com.caverock:androidsvg-aar:1.4'
+    implementation 'androidx.mediarouter:mediarouter:1.6.0'
+    implementation 'com.google.firebase:firebase-auth:22.2.0'
+    implementation 'com.google.firebase:firebase-database:20.3.0'
+    implementation 'com.google.firebase:firebase-firestore:24.9.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     androidTestImplementation 'androidx.test:runner:1.5.2'
@@ -78,29 +80,8 @@ dependencies {
     implementation 'com.android.support:support-annotations:28.0.0'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.0"
+    implementation(platform("com.google.firebase:firebase-bom:32.5.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation 'com.google.firebase:firebase-core:21.1.1'
+    implementation("com.google.firebase:firebase-firestore")
 }
-task buildEco {
-    def a = "buildSrc/src/main/java/chess/eco.pgn"
-    def b = "CaecusChessApp/src/main/assets/eco.dat"
-    chess.EcoBuilder.main2(a, b)
-}
-preBuild.dependsOn buildEco
-
-task copyToAssets(type: Copy, dependsOn: 'externalNativeBuildRelease') {
-    from('build/intermediates/ndkBuild/release/obj/local') {
-        include '*/stockfish'
-        include '*/stockfish_nosimd'
-    }
-    into 'src/main/assets'
-}
-tasks.withType(JavaCompile) {
-    t -> t.dependsOn copyToAssets
-}
-android {
-    applicationVariants.all { variant ->
-        tasks["merge${variant.name.capitalize()}Assets"]
-                .dependsOn(copyToAssets)
-    }
-}
-
-

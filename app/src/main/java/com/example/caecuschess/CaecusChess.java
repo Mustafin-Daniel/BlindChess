@@ -5,10 +5,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.Notification;
 import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -19,25 +16,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.content.res.Resources.NotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Typeface;
 import android.graphics.drawable.StateListDrawable;
-import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.StrictMode;
-import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Pair;
@@ -51,19 +44,22 @@ import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.view.ViewGroup.LayoutParams;
 import android.view.WindowManager;
-import android.webkit.WebView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView.ScaleType;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.app.ActivityCompat;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -72,10 +68,13 @@ import com.caverock.androidsvg.SVG;
 import com.caverock.androidsvg.SVGParseException;
 import com.example.caecuschess.GameEngine.ChessError;
 import com.example.caecuschess.GameEngine.DroidChessController;
+import com.example.caecuschess.GameEngine.Game;
 import com.example.caecuschess.GameEngine.GameTree.Node;
 import com.example.caecuschess.GameEngine.Move;
+import com.example.caecuschess.GameEngine.MoveGeneration;
 import com.example.caecuschess.GameEngine.Position;
 import com.example.caecuschess.GameEngine.TextInfo;
+import com.example.caecuschess.GameEngine.UndoInfo;
 import com.example.caecuschess.activities.CPUWarning;
 import com.example.caecuschess.activities.EditBoard;
 import com.example.caecuschess.activities.EditPGNLoad;
@@ -87,6 +86,25 @@ import com.example.caecuschess.activities.util.PGNFile;
 import com.example.caecuschess.activities.util.PGNFile.GameInfo;
 import com.example.caecuschess.book.BookOptions;
 import com.example.caecuschess.view.MoveListView;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.firestore.SetOptions;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -96,10 +114,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeMap;
 
 import tourguide.TourGuide;
@@ -110,17 +133,7 @@ public class CaecusChess extends Activity
                                   ActivityCompat.OnRequestPermissionsResultCallback {
     private ChessBoardPlay cb;
     DroidChessController ctrl = null;
-    private boolean mShowThinking;
-    private boolean mShowStats;
-    private boolean fullPVLines;
-    private int numPV;
-    private boolean mWhiteBasedScores;
-    private boolean mShowBookHints;
-    private int mEcoHints;
-    private int maxNumArrows;
     GameMode gameMode;
-    private boolean mPonderMode;
-    private int movesPerSession;
     private String playerName;
     private boolean boardFlipped;
     private boolean autoSwapSides;
@@ -130,13 +143,12 @@ public class CaecusChess extends Activity
     private TextView status;
     private ScrollView moveListScroll;
     private MoveListView moveList;
-    private View thinkingScroll;
     private TextView thinking;
     private View buttons;
     private ImageButton modeButton, undoButton, redoButton, blindButton, flipButton;
-    private TextView whiteTitleText, blackTitleText, engineTitleText;
+    private TextView whiteTitleText, blackTitleText;
     private View secondTitleLine;
-    private TextView whiteFigText, blackFigText, summaryTitleText;
+    private TextView whiteFigText, blackFigText;
     private Dialog moveListMenuDlg;
 
     private DrawerLayout drawerLayout;
@@ -152,10 +164,15 @@ public class CaecusChess extends Activity
     boolean scrollGames;
     private boolean autoScrollMoveList;
 
+    private FirebaseAuth auth;
+    private FirebaseUser user;
+    private FirebaseFirestore db = FirebaseFirestore.getInstance();
+    private Object topscorecolortest;
+    private Object topscoresequencemaster;
+
     private boolean leftHanded;
     private boolean animateMoves;
     private boolean autoScrollTitle;
-    private boolean showVariationLine;
 
     private int autoMoveDelay; // Delay in auto forward/backward mode
     enum AutoMode {
@@ -185,17 +202,12 @@ public class CaecusChess extends Activity
     private BookOptions bookOptions = new BookOptions();
     private PGNOptions pgnOptions = new PGNOptions();
 
-    private long lastVisibleMillis; // Time when GUI became invisible. 0 if currently visible.
-
     private PgnScreenText gameTextListener;
 
     private Typeface figNotation;
     private Typeface defaultThinkingListTypeFace;
 
     private TourGuide tourGuide;
-
-    private Speech speech;
-
 
     /** Defines all configurable button actions. */
     ActionFactory actionFactory = new ActionFactory() {
@@ -359,8 +371,9 @@ public class CaecusChess extends Activity
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        FirebaseApp.initializeApp(this);
         super.onCreate(savedInstanceState);
-
+        auth = FirebaseAuth.getInstance();
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
 
@@ -382,57 +395,7 @@ public class CaecusChess extends Activity
 
         figNotation = Typeface.createFromAsset(getAssets(), "fonts/CaecusChessChessNotationDark.otf");
         setPieceNames(PGNOptions.PT_LOCAL);
-        initUI();
-
-        gameTextListener = new PgnScreenText(this, pgnOptions);
-        moveList.setOnLinkClickListener(gameTextListener);
-        ctrl = new DroidChessController(this, gameTextListener, pgnOptions);
-        egtbForceReload = true;
-        if (speech == null)
-            speech = new Speech();
-        readPrefs(false);
-        ctrl.newGame(gameMode);
-        setAutoMode(AutoMode.OFF);
-        {
-            byte[] data = null;
-            int version = 1;
-            if (savedInstanceState != null) {
-                byte[] token = savedInstanceState.getByteArray("gameStateT");
-                if (token != null)
-                    data = cache.retrieveBytes(token);
-                version = savedInstanceState.getInt("gameStateVersion", version);
-            } else {
-                String dataStr = settings.getString("gameState", null);
-                version = settings.getInt("gameStateVersion", version);
-                if (dataStr != null)
-                    data = strToByteArr(dataStr);
-            }
-            if (data != null)
-                ctrl.fromByteArray(data, version);
-        }
-        ctrl.setGuiPaused(true);
-        ctrl.setGuiPaused(false);
-        ctrl.startGame();
-        if (intentPgnOrFen != null) {
-            try {
-                ctrl.setFENOrPGN(intentPgnOrFen, true);
-                setBoardFlip(true);
-            } catch (ChessError e) {
-                // If FEN corresponds to illegal chess position, go into edit board mode.
-                try {
-                    TextInfo.readFEN(intentPgnOrFen);
-                } catch (ChessError e2) {
-                    if (e2.pos != null)
-                        startEditBoard(TextInfo.intoFEN(e2.pos));
-                }
-            }
-        } else if (intentFilename != null) {
-            if (intentFilename.toLowerCase(Locale.US).endsWith(".fen") ||
-                intentFilename.toLowerCase(Locale.US).endsWith(".epd"))
-                loadFENFromFile(intentFilename);
-            else
-                loadPGNFromFile(intentFilename);
-        }
+        initMenu();
     }
 
     @Override
@@ -648,6 +611,203 @@ public class CaecusChess extends Activity
 
     }
 
+    private void initMenu(){
+        setContentView(R.layout.main_menu);
+        Button btnColorTest = findViewById(R.id.btnColorTest);
+        btnColorTest.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                setContentView(R.layout.color_test);
+                RadioGroup modeRadioGroup = findViewById(R.id.radiocolortestmode);
+                RadioGroup colorRadioGroup = findViewById(R.id.colorRadioGroup);
+                RadioGroup timeRadioGroup = findViewById(R.id.timerRadioGroup);
+                TextView square = findViewById(R.id.tv_square_color);
+                Button submitOptBtn = findViewById(R.id.btn_submit);
+                colorRadioGroup.setVisibility(View.GONE);
+                Button whiteBtn = findViewById(R.id.whiteRadioButton);
+                Button blackBtn = findViewById(R.id.blackRadioButton);
+                final int[] counter = {0};
+
+                submitOptBtn.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        if ((modeRadioGroup.getCheckedRadioButtonId()==R.id.radio_bullet && timeRadioGroup.getCheckedRadioButtonId()!=-1) || modeRadioGroup.getCheckedRadioButtonId()==R.id.radio_training) {
+                            timeRadioGroup.setVisibility(View.GONE);
+                            colorRadioGroup.setVisibility(View.VISIBLE);
+                            modeRadioGroup.setVisibility(View.GONE);
+
+                            square.setText(generateRandomSq());
+                            RadioButton timeBtn=findViewById(timeRadioGroup.getCheckedRadioButtonId());
+                            if(modeRadioGroup.getCheckedRadioButtonId()==R.id.radio_bullet) {
+                                int timer=startTimer((String) timeBtn.getText());
+
+                                CountDownTimer time = new CountDownTimer(timer, 1000) {
+                                    @Override
+                                    public void onTick(long millisUntilFinished) {
+
+                                    }
+
+                                    @Override
+                                    public void onFinish() {
+                                        Toast.makeText(CaecusChess.this, "Timer is up. Score: "+counter[0], Toast.LENGTH_SHORT).show();
+                                        colorRadioGroup.setVisibility(View.GONE);
+                                        timeRadioGroup.setVisibility(View.VISIBLE);
+                                        timeRadioGroup.clearCheck();
+                                        modeRadioGroup.setVisibility(View.VISIBLE);
+                                        modeRadioGroup.clearCheck();
+                                        colorRadioGroup.setVisibility(View.GONE);
+                                        submitOptBtn.setVisibility(View.VISIBLE);
+                                        square.setText("Square");
+                                        if(user!=null){
+                                            long tssm = (long)topscorecolortest;
+                                            if(tssm<(long)counter[0]) {
+                                                DocumentReference docRef = db.collection("users").document(user.getUid());
+                                                Map<String, Object> upd = new HashMap<>();
+                                                upd.put("color test", (long)counter[0]);
+                                                topscorecolortest=(long)counter[0];
+                                                docRef.set(upd, SetOptions.merge());
+                                            }
+                                        }
+                                        counter[0]=0;
+                                    }
+                                };
+
+                                time.start();
+                            }
+                            submitOptBtn.setVisibility(View.GONE);
+                        }
+                    }
+
+                });
+
+                whiteBtn.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        boolean isCorr=checkSq((String) square.getText(),true);
+                        if(isCorr){
+                            square.setText(generateRandomSq());
+                            counter[0]++;
+                        }else{
+                            square.setText(generateRandomSq());
+                            Toast.makeText(CaecusChess.this, "oops", Toast.LENGTH_SHORT).show();
+                            if(modeRadioGroup.getCheckedRadioButtonId()==R.id.radio_bullet) {
+                                Toast.makeText(CaecusChess.this, "Error. Score: "+counter[0], Toast.LENGTH_SHORT).show();
+                                colorRadioGroup.setVisibility(View.GONE);
+                                timeRadioGroup.setVisibility(View.VISIBLE);
+                                timeRadioGroup.clearCheck();
+                                modeRadioGroup.setVisibility(View.VISIBLE);
+                                modeRadioGroup.clearCheck();
+                                colorRadioGroup.setVisibility(View.GONE);
+                                submitOptBtn.setVisibility(View.VISIBLE);
+                                square.setText("Square");
+                                if(user!=null){
+                                    long tssm = (long)topscorecolortest;
+                                    if(tssm<(long)counter[0]) {
+                                        DocumentReference docRef = db.collection("users").document(user.getUid());
+                                        Map<String, Object> upd = new HashMap<>();
+                                        upd.put("color test", (long)counter[0]);
+                                        topscorecolortest=(long)counter[0];
+                                        docRef.set(upd, SetOptions.merge());
+                                    }
+                                }
+                                counter[0]=0;
+                            }
+                        }
+                    }
+                });
+
+                blackBtn.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        boolean isCorr=checkSq((String) square.getText(),false);
+                        if(isCorr){
+                            square.setText(generateRandomSq());
+                            counter[0]++;
+                        }else{
+                            square.setText(generateRandomSq());
+                            Toast.makeText(CaecusChess.this, "oops", Toast.LENGTH_SHORT).show();
+                            if(modeRadioGroup.getCheckedRadioButtonId()==R.id.radio_bullet) {
+                                Toast.makeText(CaecusChess.this, "Error. Score: "+counter[0], Toast.LENGTH_SHORT).show();
+                                colorRadioGroup.setVisibility(View.GONE);
+                                timeRadioGroup.setVisibility(View.VISIBLE);
+                                timeRadioGroup.clearCheck();
+                                modeRadioGroup.setVisibility(View.VISIBLE);
+                                modeRadioGroup.clearCheck();
+                                colorRadioGroup.setVisibility(View.GONE);
+                                submitOptBtn.setVisibility(View.VISIBLE);
+                                square.setText("Square");
+                                if(user!=null){
+                                    long tssm = (long)topscorecolortest;
+                                    if(tssm<(long)counter[0]) {
+                                        DocumentReference docRef = db.collection("users").document(user.getUid());
+                                        Map<String, Object> upd = new HashMap<>();
+                                        upd.put("color test", (long)counter[0]);
+                                        topscorecolortest=(long)counter[0];
+                                        docRef.set(upd, SetOptions.merge());
+                                    }
+                                }
+                                counter[0]=0;
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        Button btnSequenceMaster = findViewById(R.id.btnSequenceMaster);
+        btnSequenceMaster.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                SequenceMaster();
+            }
+        });
+
+        Button btnMemoryWizard = findViewById(R.id.btnMemoryWizard);
+        btnMemoryWizard.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) { MemoryWizard(); }
+        });
+
+        Button btnBlindChess = findViewById(R.id.btnBlindChess);
+        btnBlindChess.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                initUI();
+                gameTextListener = new PgnScreenText(CaecusChess.this, pgnOptions);
+                moveList.setOnLinkClickListener(gameTextListener);
+                ctrl = new DroidChessController(CaecusChess.this, gameTextListener, pgnOptions);
+                egtbForceReload = true;
+                readPrefs(false);
+                ctrl.newGame(gameMode);
+                setAutoMode(AutoMode.OFF);
+                ctrl.setGuiPaused(true);
+                ctrl.setGuiPaused(false);
+                ctrl.startGame();
+                setBoardFlip(true);
+                cb.setBlindMode(true);
+            }
+        });
+
+        ImageButton authBtn = findViewById(R.id.authenticationBtn);
+        authBtn.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(user==null) {
+                    setContentView(R.layout.authentication);
+                    initAuth();
+                }else{
+                    setContentView(R.layout.user_menu);
+                    initUserMenu();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onBackPressed() {
+        initMenu();
+    }
+
     private void initUI() {
         leftHanded = leftHandedView();
         setContentView(leftHanded ? R.layout.main_left_handed : R.layout.main);
@@ -660,7 +820,6 @@ public class CaecusChess extends Activity
         whiteTitleText.setSelected(true);
         blackTitleText = findViewById(R.id.black_clock);
         blackTitleText.setSelected(true);
-        engineTitleText = findViewById(R.id.title_text);
         whiteFigText = findViewById(R.id.white_pieces);
         whiteFigText.setTypeface(figNotation);
         whiteFigText.setSelected(true);
@@ -669,12 +828,10 @@ public class CaecusChess extends Activity
         blackFigText.setTypeface(figNotation);
         blackFigText.setSelected(true);
         blackFigText.setTextColor(blackTitleText.getTextColors());
-        summaryTitleText = findViewById(R.id.title_text_summary);
 
         status = findViewById(R.id.status);
         moveListScroll = findViewById(R.id.scrollView);
         moveList = findViewById(R.id.moveList);
-        thinkingScroll = findViewById(R.id.scrollViewBot);
         thinking = findViewById(R.id.thinking);
         defaultThinkingListTypeFace = thinking.getTypeface();
         status.setFocusable(false);
@@ -718,12 +875,6 @@ public class CaecusChess extends Activity
             reShowDialog(MOVELIST_MENU_DIALOG);
             return true;
         });
-        thinking.setOnLongClickListener(v -> {
-            if (mShowThinking || gameMode.analysisMode())
-                if (!pvMoves.isEmpty())
-                    reShowDialog(THINKING_MENU_DIALOG);
-            return true;
-        });
 
         buttons = findViewById(R.id.buttons);
 
@@ -765,6 +916,480 @@ public class CaecusChess extends Activity
         });
     }
 
+    private void SequenceMaster(){
+        setContentView(R.layout.sequence_master);
+        SeekBar slider = findViewById(R.id.smseekbar);
+        RadioGroup smTimeGroup = findViewById(R.id.smTimeGroup);
+        final int[] numMove={5};
+        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                Toast.makeText(CaecusChess.this, getString(R.string.memorizeText)+": "+String.valueOf(progress+1), Toast.LENGTH_SHORT).show();
+                numMove[0] = progress+1;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+        Button smBtnSubmit = findViewById(R.id.smsubmit);
+        TextView smmoves = findViewById(R.id.smmoves);
+        final Position[] endpos = new Position[1];
+
+        smBtnSubmit.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                RadioButton timeBtn = findViewById(smTimeGroup.getCheckedRadioButtonId());
+                if (timeBtn!=null){
+                    smBtnSubmit.setVisibility(View.GONE);
+                    smmoves.setVisibility(View.VISIBLE);
+                    int timer=startTimer((String) timeBtn.getText());
+
+                    ArrayList<Move> mList = new ArrayList<>();
+                    String moveListText = "";
+                    try {
+                        Position pos=TextInfo.readFEN(TextInfo.startPosFEN);
+                        for (int i=1; i<=numMove[0]; i++){
+                            ArrayList<Move> moves = MoveGeneration.instance.generateLegalMoves(pos);
+                            Random random = new Random();
+                            Move randomMove = moves.get(random.nextInt(moves.size()));
+                            mList.add(randomMove);
+                            UndoInfo ui = new UndoInfo();
+                            moveListText+=String.valueOf(i)+". ";
+                            moveListText+=(TextInfo.moveToString(pos, randomMove, false, false));
+                            moveListText+=" ";
+                            pos.makeMove(randomMove, ui);
+
+                            moves = MoveGeneration.instance.generateLegalMoves(pos);
+                            randomMove = moves.get(random.nextInt(moves.size()));
+                            mList.add(randomMove);
+                            ui = new UndoInfo();
+                            moveListText+=(TextInfo.moveToString(pos, randomMove, false, false));
+                            moveListText+=" ";
+                            pos.makeMove(randomMove, ui);
+                        }
+                        endpos[0]=pos;
+                    } catch (ChessError e) {
+                        Toast.makeText(CaecusChess.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+
+                    smmoves.setText(moveListText);
+
+                    CountDownTimer time = new CountDownTimer(timer, 1000) {
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            initUI();
+                            gameTextListener = new PgnScreenText(CaecusChess.this, pgnOptions);
+                            moveList.setOnLinkClickListener(gameTextListener);
+                            ctrl = new DroidChessController(CaecusChess.this, gameTextListener, pgnOptions);
+                            ctrl.type=1;
+                            ctrl.corrMoveList=mList;
+                            egtbForceReload = true;
+                            readPrefs(false);
+                            ctrl.newGame(gameMode);
+                            setAutoMode(AutoMode.OFF);
+                            ctrl.setGuiPaused(true);
+                            ctrl.setGuiPaused(false);
+                            ctrl.startGame();
+                            setBoardFlip(true);
+
+
+
+                            CountDownTimer tim = new CountDownTimer(Long.MAX_VALUE, 1000) {
+                                @Override
+                                public void onTick(long millisUntilFinished) {
+                                    if (Arrays.equals(cb.pos.getSquares(), endpos[0].getSquares())) {
+                                        setContentView(R.layout.sequence_master);
+                                        smBtnSubmit.setVisibility(View.VISIBLE);
+                                        smmoves.setVisibility(View.GONE);
+                                        Toast.makeText(CaecusChess.this, "Good job", Toast.LENGTH_SHORT).show();
+                                        if(user!=null){
+                                            long tssm = (long)topscoresequencemaster;
+                                            if(tssm<(long)numMove[0]) {
+                                                DocumentReference docRef = db.collection("users").document(user.getUid());
+                                                Map<String, Object> upd = new HashMap<>();
+                                                upd.put("sequence master", (long)numMove[0]);
+                                                topscoresequencemaster=(long)numMove[0];
+                                                docRef.set(upd, SetOptions.merge());
+                                            }
+                                        }
+                                        try {
+                                            endpos[0]=TextInfo.readFEN("4k3/8/8/8/8/8/8/3K4 w - - 0 1");
+                                        } catch (ChessError e) {
+                                        }
+                                        SequenceMaster();
+
+                                    }
+                                }
+
+                                @Override
+                                public void onFinish() {
+                                }
+                            };
+                            tim.start();
+                        }
+                    };
+
+                    time.start();
+                }
+            }
+        });
+    }
+
+    private void MemoryWizard(){
+        setContentView(R.layout.memory_wizard);
+        final ArrayList<Move> mList = new ArrayList<>();
+        RadioGroup modeGroup = findViewById(R.id.moderadiogroup);
+        Button submitbtn = findViewById(R.id.submitbtn);
+        submitbtn.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(modeGroup.getCheckedRadioButtonId()==R.id.openingbtn){
+                    CollectionReference colRef = db.collection("openings");
+                    colRef.get().addOnSuccessListener(queryDocumentSnapshots -> {
+                        List<DocumentSnapshot> documents = queryDocumentSnapshots.getDocuments();
+                        int totalDoc = documents.size();
+                        int randomIndex = (int)(Math.random() * totalDoc);
+                        DocumentSnapshot randomDoc = documents.get(randomIndex);
+
+                        String OpenName = "Error";
+                        String documentId = randomDoc.getId();
+                        Map<String, Object> documentData = randomDoc.getData();
+
+                        for (Map.Entry<String, Object> entry : documentData.entrySet()) {
+                            OpenName = entry.getKey();                            List<Map<String, Object>> moveListData = (List<Map<String, Object>>) entry.getValue();
+                            for (Map<String, Object> moveData : moveListData) {
+                                int SQto = ((Long) moveData.get("SQto")).intValue();
+                                int SQfrom = ((Long) moveData.get("SQfrom")).intValue();
+                                int PromoteTo = ((Long) moveData.get("PromoteTo")).intValue();
+                                Move move = new Move(SQfrom, SQto, PromoteTo);
+                                mList.add(move);
+                            }
+                        }
+                        initUI();
+                        gameTextListener = new PgnScreenText(CaecusChess.this, pgnOptions);
+                        moveList.setOnLinkClickListener(gameTextListener);
+                        ctrl = new DroidChessController(CaecusChess.this, gameTextListener, pgnOptions);
+                        ctrl.type=1;
+                        ctrl.corrMoveList=mList;
+                        egtbForceReload = true;
+                        readPrefs(false);
+                        ctrl.newGame(gameMode);
+                        setAutoMode(AutoMode.OFF);
+                        ctrl.setGuiPaused(true);
+                        ctrl.setGuiPaused(false);
+                        ctrl.startGame();
+                        setBoardFlip(true);
+
+                        Toast.makeText(CaecusChess.this, OpenName, Toast.LENGTH_SHORT).show();
+                        CountDownTimer tim = new CountDownTimer(Long.MAX_VALUE, 1000) {
+                            @Override
+                            public void onTick(long millisUntilFinished) {
+                                if (ctrl.corrMoveList.isEmpty()) {
+                                    setContentView(R.layout.sequence_master);
+                                    Toast.makeText(CaecusChess.this, "Good job", Toast.LENGTH_SHORT).show();
+                                    initMenu();
+                                    ctrl.corrMoveList=mList;
+                                    cancel();
+                                }
+                            }
+
+                            @Override
+                            public void onFinish() {
+                            }
+                        };
+                        tim.start();
+                    });
+                }
+                else if(modeGroup.getCheckedRadioButtonId()==R.id.endgamebtn){
+                    CollectionReference colRef = db.collection("endgames");
+                    colRef.get().addOnSuccessListener(queryDocumentSnapshots -> {
+                        List<DocumentSnapshot> documents = queryDocumentSnapshots.getDocuments();
+                        int totalDoc = documents.size();
+                        int randomIndex = (int)(Math.random() * totalDoc);
+                        DocumentSnapshot randomDoc = documents.get(randomIndex);
+
+                        String OpenName = "Error";
+                        String fen="";
+                        String documentId = randomDoc.getId();
+                        Map<String, Object> documentData = randomDoc.getData();
+
+                        for (Map.Entry<String, Object> entry : documentData.entrySet()) {
+                            OpenName = entry.getKey();
+                            fen = (String) entry.getValue();
+                        }
+                        initUI();
+                        gameTextListener = new PgnScreenText(CaecusChess.this, pgnOptions);
+                        moveList.setOnLinkClickListener(gameTextListener);
+                        ctrl = new DroidChessController(CaecusChess.this, gameTextListener, pgnOptions);
+                        egtbForceReload = true;
+                        readPrefs(false);
+                        ctrl.newGame(gameMode);
+                        setAutoMode(AutoMode.OFF);
+                        ctrl.setGuiPaused(true);
+                        ctrl.setGuiPaused(false);
+                        Game newGame = new Game(gameTextListener);
+                        try {
+                            newGame.tree.currentPos=TextInfo.readFEN(fen);
+                            ctrl.setGame(newGame);
+                            ctrl.startGame();
+                            setBoardFlip(true);
+                        } catch (ChessError e) {
+                            Toast.makeText(CaecusChess.this, "Error", Toast.LENGTH_SHORT).show();
+                            initMenu();
+                        }
+                    });
+                }
+            }
+        });
+
+    }
+
+    private void initAuth(){
+        Button loginBtn = findViewById(R.id.loginbtn);
+        Button signupBtn = findViewById(R.id.signupbtn);
+        loginBtn.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                setContentView(R.layout.login);
+                EditText emailtxt = findViewById(R.id.emaillogintxt);
+                EditText passwordtxt = findViewById(R.id.passwordlogintxt);
+                Button submitbtn = findViewById(R.id.submitloginbtn);
+
+                submitbtn.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        String txtemail = emailtxt.getText().toString();
+                        String txtpassword = passwordtxt.getText().toString();
+                        if (txtemail.isEmpty()) Toast.makeText(CaecusChess.this, getString(R.string.missing_email), Toast.LENGTH_SHORT).show();
+                        else if (txtpassword.isEmpty()) Toast.makeText(CaecusChess.this, getString(R.string.missing_password), Toast.LENGTH_SHORT).show();
+                        else loginUser(txtemail, txtpassword);
+                    }
+                });
+            }
+        });
+
+        signupBtn.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                setContentView(R.layout.signup);
+                EditText emailtxt = findViewById(R.id.emailsignuptxt);
+                EditText passwordtxt = findViewById(R.id.passwordsignuptxt);
+                EditText confirmpasswordtxt = findViewById(R.id.confirmpasswordsignuptxt);
+                Button confirmBtn = findViewById(R.id.submitsignupbtn);
+
+                confirmBtn.setOnClickListener(new OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        String txtemail = emailtxt.getText().toString();
+                        String txtpassword = passwordtxt.getText().toString();
+                        String txtconfirmpassword = confirmpasswordtxt.getText().toString();
+
+                        if (txtemail.isEmpty()) Toast.makeText(CaecusChess.this, getString(R.string.missing_email), Toast.LENGTH_SHORT).show();
+                        else if (txtpassword.isEmpty() || txtconfirmpassword.isEmpty()) Toast.makeText(CaecusChess.this, getString(R.string.missing_password), Toast.LENGTH_SHORT).show();
+                        else if (txtpassword.length()<6) Toast.makeText(CaecusChess.this, getString(R.string.password_too_short), Toast.LENGTH_SHORT).show();
+                        else if (!txtconfirmpassword.equals(txtpassword)) Toast.makeText(CaecusChess.this, getString(R.string.unmatching_passwords), Toast.LENGTH_SHORT).show();
+                        else registerUser(txtemail, txtpassword);
+                    }
+                });
+            }
+        });
+    }
+
+    private void registerUser(String email, String password){
+        auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                if(task.isSuccessful()) {
+                    Toast.makeText(CaecusChess.this, getString(R.string.signup_complete), Toast.LENGTH_SHORT).show();
+                    loginUser(email, password);
+                    user= auth.getCurrentUser();
+                    DocumentReference docRef = db.collection("users").document(user.getUid());
+                    Map<String, Object> note = new HashMap<>();
+                    note.put("color test", 0);
+                    note.put("sequence master", 0);
+                    docRef.set(note);
+                } else{
+                    Toast.makeText(CaecusChess.this, getString(R.string.signup_failed), Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+    }
+
+    private void loginUser(String email, String password){
+        auth.signInWithEmailAndPassword(email, password).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+            @Override
+            public void onSuccess(AuthResult authResult) {
+                Toast.makeText(CaecusChess.this, getString(R.string.login_complete), Toast.LENGTH_SHORT).show();
+                initMenu();
+                user = auth.getCurrentUser();
+
+                DocumentReference docRef = db.collection("users").document(user.getUid());
+                docRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        topscorecolortest=documentSnapshot.get("color test");
+                        topscoresequencemaster=documentSnapshot.get("sequence master");
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        DocumentReference docRef = db.collection("users").document(user.getUid());
+                        Map<String, Object> note = new HashMap<>();
+                        note.put("color test", 0);
+                        note.put("sequence master", 0);
+                        docRef.set(note);
+                    }
+                });
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Toast.makeText(CaecusChess.this, "LoginFailed", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
+    }
+
+    private void initUserMenu() {
+        TextView colortesttxt = findViewById(R.id.topscorecolortest);
+        TextView sequencemastertxt = findViewById(R.id.topscoresequencemaster);
+        user = auth.getCurrentUser();
+
+        DocumentReference docRef = db.collection("users").document(user.getUid());
+        docRef.get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+            @Override
+            public void onSuccess(DocumentSnapshot documentSnapshot) {
+                if (topscorecolortest == null || topscoresequencemaster == null) {
+                    topscorecolortest = documentSnapshot.getLong("color test");
+                    topscoresequencemaster = documentSnapshot.getLong("sequence master");
+                }
+
+                if (topscoresequencemaster.equals(-1) || topscorecolortest.equals(-1)) {
+                    initMenu();
+                    Toast.makeText(CaecusChess.this, "Check Network/ (Try VPN)", Toast.LENGTH_SHORT).show();
+                }
+
+                if (topscorecolortest.equals((long) 0)) {
+                    colortesttxt.setText("Color Test: " + getString(R.string.never_played));
+                } else {
+                    colortesttxt.setText("Color Test: " + topscorecolortest);
+                }
+
+                if (topscoresequencemaster.equals((long) 0)) {
+                    sequencemastertxt.setText("Sequence Master: " + getString(R.string.never_played));
+                } else {
+                    sequencemastertxt.setText("Sequence Master: " + topscoresequencemaster);
+                }
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                topscorecolortest = -1;
+                topscoresequencemaster = -1;
+
+                initMenu();
+                Toast.makeText(CaecusChess.this, "Check Network/ (Try VPN)", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        Button signoutbtn = findViewById(R.id.signoutbtn);
+        signoutbtn.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                FirebaseAuth.getInstance().signOut();
+                user = null;
+                topscorecolortest=null;
+                topscoresequencemaster=null;
+                initMenu();
+            }
+        });
+
+        if(auth.getCurrentUser().getUid().equals("11L51ERHlLfH8I4MrKZ01oEDiLR2")){
+            Button openingcreator = findViewById(R.id.openingcreatorbtn);
+            Button endgamecreator = findViewById(R.id.endgamecreatorbtn);
+
+            openingcreator.setVisibility(View.VISIBLE);
+            endgamecreator.setVisibility(View.VISIBLE);
+
+            openingcreator.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    initUI();
+                    gameTextListener = new PgnScreenText(CaecusChess.this, pgnOptions);
+                    moveList.setOnLinkClickListener(gameTextListener);
+                    ctrl = new DroidChessController(CaecusChess.this, gameTextListener, pgnOptions);
+                    egtbForceReload = true;
+                    readPrefs(false);
+                    ctrl.newGame(gameMode);
+                    setAutoMode(AutoMode.OFF);
+                    ctrl.setGuiPaused(true);
+                    ctrl.setGuiPaused(false);
+                    ctrl.startGame();
+                    setBoardFlip(true);
+                    redoButton.setVisibility(View.GONE);
+                    undoButton.setVisibility(View.GONE);
+                    Button submitButton=findViewById(R.id.submitbtn);
+                    submitButton.setVisibility(View.VISIBLE);
+                    TextView nametxt = findViewById(R.id.name);
+                    nametxt.setVisibility(View.VISIBLE);
+                    submitButton.setOnClickListener(new OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            if(TextUtils.isEmpty(nametxt.getText())){
+                                Toast.makeText(CaecusChess.this, "Name cannot be empty", Toast.LENGTH_SHORT).show();
+                            }else if(ctrl.mList.isEmpty()){
+                                Toast.makeText(CaecusChess.this, "MoveList cannot be empty", Toast.LENGTH_SHORT).show();
+                            }else{
+                                Map<String, Object> note = new HashMap<>();
+                                note.put(nametxt.getText().toString(), ctrl.mList);
+                                db.collection("openings").add(note);
+                                initMenu();
+                            }
+                        }
+                    });
+                }
+            });
+
+            endgamecreator.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    setContentView(R.layout.endgame);
+                    Button submitbtn = findViewById(R.id.submitbtn);
+                    submitbtn.setOnClickListener(new OnClickListener() {
+                        @Override
+                        public void onClick(View view) {
+                            EditText etxt = findViewById(R.id.editText);
+                            EditText nametxt = findViewById(R.id.nametxt);
+                            try {
+                                Position newpos = TextInfo.readFEN(etxt.getText().toString());
+                                if (!nametxt.getText().toString().isEmpty() && !etxt.getText().toString().isEmpty()) {
+                                    Map<String, Object> note = new HashMap<>();
+                                    note.put(nametxt.getText().toString(), etxt.getText().toString());
+                                    db.collection("endgames").add(note);
+                                    initMenu();
+                                }
+                            }catch (ChessError e){
+                                Toast.makeText(CaecusChess.this, "Error", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+
     private static final int serializeVersion = 4;
 
     @Override
@@ -780,7 +1405,6 @@ public class CaecusChess extends Activity
 
     @Override
     protected void onResume() {
-        lastVisibleMillis = 0;
         if (ctrl != null)
             ctrl.setGuiPaused(false);
         notificationActive = true;
@@ -799,16 +1423,12 @@ public class CaecusChess extends Activity
             editor.putInt("gameStateVersion", serializeVersion);
             editor.apply();
         }
-        lastVisibleMillis = System.currentTimeMillis();
         super.onPause();
     }
 
     @Override
     protected void onDestroy() {
         setAutoMode(AutoMode.OFF);
-        setNotification(false);
-        if (speech != null)
-            speech.shutdown();
         super.onDestroy();
     }
 
@@ -833,12 +1453,6 @@ public class CaecusChess extends Activity
         cb.highlightLastMove = settings.getBoolean("highlightLastMove", true);
         cb.setUltraBlindMode(settings.getBoolean("ultrablindMode", false));
 
-        mShowThinking = settings.getBoolean("showThinking", false);
-        mShowStats = settings.getBoolean("showStats", true);
-        mWhiteBasedScores = settings.getBoolean("whiteBasedScores", false);
-        maxNumArrows = getIntSetting("thinkingArrows", 4);
-        mShowBookHints = settings.getBoolean("bookHints", false);
-        mEcoHints = getIntSetting("ecoHints", ECO_HINTS_AUTO);
 
         autoMoveDelay = getIntSetting("autoDelay", 5000);
 
@@ -889,7 +1503,6 @@ public class CaecusChess extends Activity
         pgnOptions.view.headers     = settings.getBoolean("viewHeaders",        false);
         final int oldViewPieceType = pgnOptions.view.pieceType;
         pgnOptions.view.pieceType   = getIntSetting("viewPieceType", PGNOptions.PT_LOCAL);
-        showVariationLine           = settings.getBoolean("showVariationLine",  false);
         pgnOptions.imp.variations   = settings.getBoolean("importVariations",   true);
         pgnOptions.imp.comments     = settings.getBoolean("importComments",     true);
         pgnOptions.imp.nag          = settings.getBoolean("importNAG",          true);
@@ -934,6 +1547,42 @@ public class CaecusChess extends Activity
             thinking.setTypeface(defaultThinkingListTypeFace);
             thinking.setTextSize(fontSize);
         }
+    }
+
+    private String generateRandomSq(){
+        Random random = new Random();
+        char file = (char) (random.nextInt(8) + 'A');
+        int rank = random.nextInt(8) + 1;
+        String square = String.valueOf(file) + rank;
+        return square;
+    }
+
+    private boolean checkSq(String sq, boolean isWhite){
+        char file = sq.charAt(0);
+        int rank = Character.getNumericValue(sq.charAt(1));
+
+        boolean isBlackSquare = (file % 2 == 0 && rank % 2 == 0) || (file % 2 != 0 && rank % 2 != 0);
+
+        boolean isCorrectColor = (isBlackSquare && !isWhite) || (!isBlackSquare && isWhite);
+        return isCorrectColor;
+    }
+
+    private int startTimer(String Timer){
+        switch (Timer){
+            case "5 sec":
+                return 5000;
+            case "10 sec":
+                return 10000;
+            case "15 sec":
+                return 15000;
+            case "30 sec":
+                return 30000;
+            case "1 min":
+                return 60000;
+            default:
+                return -1;
+        }
+
     }
 
     /** Enable/disable title bar scrolling. */
@@ -996,27 +1645,6 @@ public class CaecusChess extends Activity
         else
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
-
-    /** TODO Remove this too
-     * Update center field in second header line. */
-    /*public final void updateTimeControlTitle() {
-        int[] tmpInfo = ctrl.getTimeLimit();
-        StringBuilder sb = new StringBuilder();
-        int tc = tmpInfo[0];
-        int mps = tmpInfo[1];
-        int inc = tmpInfo[2];
-        if (mps > 0) {
-            sb.append(mps);
-            sb.append("/");
-        }
-        sb.append(timeToString(tc));
-        if ((inc > 0) || (mps <= 0)) {
-            sb.append("+");
-            sb.append(tmpInfo[2] / 1000);
-        }
-        summaryTitleText.setText(sb.toString());
-    }
-*/
 
     @Override
     public void updateMaterialDifferenceTitle(Util.MaterialDiff diff) {
@@ -1489,83 +2117,6 @@ public class CaecusChess extends Activity
         return line.substring(0, maxLen);
     }
 
-/*    private void updateThinkingInfo() {
-        boolean thinkingEmpty = true;
-        {
-            StringBuilder sb = new StringBuilder(128);
-            if (mShowThinking || gameMode.analysisMode()) {
-                if (!thinkingStr1.isEmpty()) {
-                    if (fullPVLines) {
-                        sb.append(thinkingStr1);
-                    } else {
-                        String[] lines = thinkingStr1.split("\n");
-                        int w = thinking.getWidth();
-                        for (int i = 0; i < lines.length; i++) {
-                            String line = lines[i];
-                            if (i > 0)
-                                sb.append('\n');
-                            int n = thinking.getPaint().breakText(line, true, w, null);
-                            sb.append(truncateLine(lines[i], n));
-                        }
-                    }
-                    thinkingEmpty = false;
-                }
-                if (mShowStats) {
-                    if (!thinkingEmpty)
-                        sb.append('\n');
-                    sb.append(thinkingStr2);
-                    if (!thinkingStr2.isEmpty()) thinkingEmpty = false;
-                }
-            }
-            thinking.setText(sb.toString(), TextView.BufferType.SPANNABLE);
-        }
-        int maxDistToEcoTree = 10;
-        if ((mEcoHints == ECO_HINTS_ALWAYS ||
-            (mEcoHints == ECO_HINTS_AUTO && distToEcoTree <= maxDistToEcoTree)) &&
-            !ecoInfoStr.isEmpty()) {
-            String s = thinkingEmpty ? "" : "<br>";
-            s += ecoInfoStr;
-            thinking.append(Html.fromHtml(s));
-            thinkingEmpty = false;
-        }
-        if (mShowBookHints && !bookInfoStr.isEmpty() && ctrl.humansTurn()) {
-            String s = thinkingEmpty ? "" : "<br>";
-            s += Util.boldStart + getString(R.string.book) + Util.boldStop + bookInfoStr;
-            thinking.append(Html.fromHtml(s));
-            thinkingEmpty = false;
-        }
-        if (showVariationLine && (variantStr.indexOf(' ') >= 0)) {
-            String s = thinkingEmpty ? "" : "<br>";
-            s += Util.boldStart + getString(R.string.variation) + Util.boldStop + variantStr;
-            thinking.append(Html.fromHtml(s));
-            thinkingEmpty = false;
-        }
-        thinking.setVisibility(thinkingEmpty ? View.GONE : View.VISIBLE);
-
-        List<Move> hints = null;
-        if (mShowThinking || gameMode.analysisMode()) {
-            ArrayList<ArrayList<Move>> pvMovesTmp = pvMoves;
-            if (pvMovesTmp.size() == 1) {
-                hints = pvMovesTmp.get(0);
-            } else if (pvMovesTmp.size() > 1) {
-                hints = new ArrayList<>();
-                for (ArrayList<Move> pv : pvMovesTmp)
-                    if (!pv.isEmpty())
-                        hints.add(pv.get(0));
-            }
-        }
-        if ((hints == null) && mShowBookHints)
-            hints = bookMoves;
-        if (((hints == null) || hints.isEmpty()) &&
-            (variantMoves != null) && variantMoves.size() > 1) {
-            hints = variantMoves;
-        }
-        if ((hints != null) && (hints.size() > maxNumArrows)) {
-            hints = hints.subList(0, maxNumArrows);
-        }
-        cb.setMoveHints(hints);
-    }*/ //TODO Remove this damn
-
     static private final int PROMOTE_DIALOG = 0;
     static         final int BOARD_MENU_DIALOG = 1;
     static private final int ABOUT_DIALOG = 2;
@@ -1625,7 +2176,6 @@ public class CaecusChess extends Activity
     }
 
     private void startNewGame() {
-        speech.flushQueue();
         ctrl.newGame(gameMode);
         ctrl.startGame();
         setBoardFlip(true);
@@ -2508,48 +3058,7 @@ public class CaecusChess extends Activity
     private boolean notificationActive = false;
     private NotificationChannel notificationChannel = null;
 
-    /** Set/clear the "heavy CPU usage" notification. */
-    private void setNotification(boolean show) {
-        if (notificationActive == show)
-            return;
-        notificationActive = show;
 
-        final int cpuUsage = 1;
-        Context context = getApplicationContext();
-        NotificationManagerCompat notificationManagerCompat =
-                NotificationManagerCompat.from(context);
-
-        if (show) {
-            final int sdkVer = Build.VERSION.SDK_INT;
-            String channelId = "general";
-            if (notificationChannel == null && sdkVer >= 26) {
-                notificationChannel = new NotificationChannel(channelId, "General",
-                                                              NotificationManager.IMPORTANCE_HIGH);
-                NotificationManager notificationManager =
-                        (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
-                notificationManager.createNotificationChannel(notificationChannel);
-            }
-
-            int icon = R.mipmap.ic_launcher;
-            String tickerText = getString(R.string.heavy_cpu_usage);
-            String contentTitle = getString(R.string.background_processing);
-            String contentText = getString(R.string.lot_cpu_power);
-            Intent notificationIntent = new Intent(this, CPUWarning.class);
-            PendingIntent contentIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
-
-            Notification notification = new NotificationCompat.Builder(context, channelId)
-                    .setSmallIcon(icon)
-                    .setTicker(tickerText)
-                    .setOngoing(true)
-                    .setContentTitle(contentTitle)
-                    .setContentText(contentText)
-                    .setContentIntent(contentIntent)
-                    .build();
-            notificationManagerCompat.notify(cpuUsage, notification);
-        } else {
-            notificationManagerCompat.cancel(cpuUsage);
-        }
-    }
 
     private String timeToString(int time) {
         int secs = (int)Math.floor((time + 999) / 1000.0);

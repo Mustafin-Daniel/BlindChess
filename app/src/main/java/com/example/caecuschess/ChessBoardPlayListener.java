@@ -80,13 +80,15 @@ public class ChessBoardPlayListener implements View.OnTouchListener {
                             cb.userSelectedSquare = false;
                             Move m = new Move(sq0, sq, Piece.EMPTY);
                             df.setAutoMode(CaecusChess.AutoMode.OFF);
-                            df.ctrl.makeHumanMove(m, false);
+                            if (df.ctrl.type==1) df.ctrl.makeHumanMoveInList(m, false, df.ctrl.corrMoveList);
+                            else df.ctrl.makeHumanMove(m, false);
                         }
                     } else if (pendingClick && (sq == sq0)) {
                         Move m = cb.mousePressed(sq);
                         if (m != null) {
                             df.setAutoMode(CaecusChess.AutoMode.OFF);
-                            df.ctrl.makeHumanMove(m, true);
+                            if (df.ctrl.type==1) df.ctrl.makeHumanMoveInList(m, true, df.ctrl.corrMoveList);
+                            else df.ctrl.makeHumanMove(m, true);
                         }
                     }
                 }

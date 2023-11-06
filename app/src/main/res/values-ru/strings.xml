@@ -44,8 +44,6 @@
     <string name="load_save_menu">Загрузить/Сохранить партию</string>
     <string name="goto_move">Сделать ход</string>
     <string name="limit_strength">Limit Strength</string>
-    <string name="set_engine_strength">Set Engine Strength</string>
-    <string name="engine_cannot_reduce_strength">Engine cannot reduce playing strength</string>
     <string name="edit_randomization">Изменить рандомизацию (случайность)</string>
     <string name="invalid_number_format">Неправильный формат числа</string>
     <string name="side_to_move">Задать направление хода</string>
@@ -244,9 +242,6 @@
     <string name="prefs_quickMoveInput_title">Быстрый ввод хода</string>
     <string name="prefs_quickMoveInput_summary">Клетки Откуда и Куда могут быть нажаты в любом порядке. Ход играется сразу если является допустимым.</string>
     <string name="prefs_moveSoundEnabled_title">Move sound</string>
-    <string name="prefs_moveSoundEnabled_summary">Play sound when computer makes a move</string>
-    <string name="prefs_moveAnnounceType_title">Speak moves</string>
-    <string name="prefs_moveAnnounceType_summary">Speak when computer makes a move</string>
     <string name="prefs_vibrateEnabled_title">Включить вибрирование</string>
     <string name="prefs_vibrateEnabled_summary">Вибрировать во время хода компьютера</string>
     <string name="prefs_fullScreenMode_title">Режим отображения на весь экран</string>
@@ -333,7 +328,7 @@
     <string name="prefs_viewPieceSet_title">Выбрать фигуры</string>
     <string name="prefs_viewPieceSet_summary">Выберите набор шахматных фигур</string>
     <string name="prefs_blindMode_title">Режим игры в слепую</string>
-    <string name="prefs_blindMode_summary">Показать чистую доску вместо фигур</string>
+    <string name="prefs_blindMode_summary">Показать  доску с кружками вместо фигур</string>
     <string name="prefs_pgn_import">Импортирование PGN</string>
     <string name="prefs_importVariations_title">Изменения</string>
     <string name="prefs_importVariations_summary">Включить ходы по неглавным линяям</string>
@@ -353,18 +348,11 @@
     <string name="prefs_exportTime_title">Часы</string>
     <string name="prefs_exportTime_summary">Включить информацию о времени для каждого хода</string>
     <string name="prefs_egtbSettings_title">Базы данных эндшпилей</string>
-    <string name="prefs_tbHints_title">Показывать подсказки</string>
     <string name="prefs_tbHints_summary">Показывать оценку из базы данных для возможных ходов фигуры при прикосновении к ней</string>
     <string name="prefs_tbHintsEdit_title">Редактировать подсказки на доске</string>
     <string name="prefs_tbHintsEdit_summary">Показывать оценку из базы данных для возможных запасных ходов фигуры при прикосновении к ней в режиме редактирования доски</string>
     <string name="prefs_tbRootProbe_title">Зондирование Root</string>
     <string name="prefs_tbRootProbe_summary">Фильтровать неоптимальные ходы перед началом поиска</string>
-    <string name="prefs_tbEngineProbe_title">Зондирование движка</string>
-    <string name="prefs_tbEngineProbe_summary">Включить tablebase зондирование в двигатель, когда поддерживается</string>
-    <string name="prefs_gtbPath_title">Директория GTB</string>
-    <string name="prefs_gtbPath_summary">Директория, где инсталлирована база данных Гавиоты. Оставить пустой для использования директории по умолчанию</string>
-    <string name="prefs_guideShowOnStart_title">Руководство по запуску</string>
-    <string name="prefs_guideShowOnStart_summary">Показать начальное руководство в следующий раз, когда программа будет запущена.</string>
     <string name="tour_leftMenu_title">Левое меню</string>
     <string name="tour_leftMenu_desc">Чтобы открыть меню слева, нажмите на в левой части заголовка или проведите от левой к правой стороне экрана.</string>
     <string name="tour_rightMenu_title">Правое меню</string>
@@ -376,7 +364,6 @@
     <string name="tour_moveList_title">Перемещение списка</string>
     <string name="tour_moveList_desc">Нажмите Переместить в списке перемещения чтобы установить шахматную доску в нужное положение. Коснитесь и удерживайте список перемещения чтобы открыть меню редактирования игры.</string>
     <string name="tour_analysis_title">Анализ информации</string>
-    <string name="tour_analysis_desc">Когда движок думает, коснитесь и удерживайте анализируемую информацию, чтобы открыть меню анализа.</string>
     <string name="buttonDesc_custom1">@string/prefs_custom_button_1</string>
     <string name="buttonDesc_custom2">@string/prefs_custom_button_2</string>
     <string name="buttonDesc_custom3">@string/prefs_custom_button_3</string>
@@ -384,6 +371,14 @@
     <string name="buttonDesc_back">Кнопка перехода назад</string>
     <string name="buttonDesc_forward">Кнопка перехода вперед</string>
     <string name="blind_button" translatable="false"> Переключить слепой режим </string>
+    <string name="bullet">Пуля</string>
+    <string name="training">Тренировка</string>
+    <string name="submit">Подтвердить</string>
+    <string name="square_color">Цвет клетки</string>
+    <string name="square">Клетка</string>
+    <string name="memorizeText">Кол-во ходов запомнить</string>
+    <string name="sign_up">Зарегистрироваться</string>
+    />
     <string-array name="viewPieceType_texts">
         <item>Международная</item>
         <item>Русская</item>
@@ -431,32 +426,6 @@
         <item>pirat</item>
         <item>regular</item>
         <item>wikimedia</item>
-    </string-array>
-    <string-array name="engine_hash_texts">
-        <item>16 MB</item>
-        <item>32 MB</item>
-        <item>64 MB</item>
-        <item>128 MB</item>
-        <item>256 MB</item>
-        <item>512 MB</item>
-        <item>1024 MB</item>
-        <item>2048 MB</item>
-        <item>4096 MB</item>
-        <item>8192 MB</item>
-        <item>16384 MB</item>
-    </string-array>
-    <string-array name="engine_hash_values">
-        <item>16</item>
-        <item>32</item>
-        <item>64</item>
-        <item>128</item>
-        <item>256</item>
-        <item>512</item>
-        <item>1024</item>
-        <item>2048</item>
-        <item>4096</item>
-        <item>8192</item>
-        <item>16384</item>
     </string-array>
     <string-array name="moves_per_session_texts">
         <item>Полная партия</item>
@@ -680,12 +649,23 @@
         <item>loadLastFile</item>
         <item>loadGame</item>
     </string-array>
-    <string-array name="move_announce_type_values">
-        <item>off</item>
-        <item>speech_en</item>
-    </string-array>
-    <string-array name="move_announce_type_texts">
-        <item>Выкл.</item>
-        <item>По-английски</item>
-    </string-array>
+    <string name="prefs_ultra_blindMode_summary">Показывать круги серого цвета вместо белого и черного</string>
+    <string name="prefs_ultra_blindMode_title">Ультраслепой режим</string>
+    <string name="login">Войти</string>
+    <string name="enter_your_email">Эл. почту</string>
+    <string name="enter_password">Пароль</string>
+    <string name="confirm_password">Подтвердите пароль</string>
+    <string name="missing_email">Введите эл. почту</string>
+    <string name="missing_password">Введите пароль</string>
+    <string name="unmatching_passwords">Пароли не совпадают</string>
+    <string name="password_too_short">Пароль должен быть длинее 6 символов</string>
+    <string name="signup_complete">Регистрация выполнена</string>
+    <string name="signup_failed">Регистрация не успешна</string>
+    <string name="login_complete">Вход выполнен</string>
+    <string name="never_played">Пока не сыграл</string>
+    <string name="endgame_creator">Создать эндшпиль</string>
+    <string name="opening_creator">Создать дебют</string>
+    <string name="sign_out">Выход из аккаунта</string>
+    <string name="opening">Дебют</string>
+    <string name="endgame">Эндшпиль</string>
 </resources>

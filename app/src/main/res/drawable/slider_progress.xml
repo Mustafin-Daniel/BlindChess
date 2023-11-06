@@ -1,0 +1,14 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape>
+            <solid android:color="#88502B" /> <!-- Set the color of the background to black -->
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape>
+                <solid android:color="#9F9F9F" /> <!-- Set the color of the progress to white -->
+            </shape>
+        </clip>
+    </item>
+</layer-list>

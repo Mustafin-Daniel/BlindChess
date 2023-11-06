@@ -29,6 +29,16 @@ public class DroidChessController {
     private GUIInterface gui;
     private GameMode gameMode;
     private PGNOptions pgnOptions;
+    /** 1 is check and 0 is normal */
+    public int type=0;
+    public ArrayList<Move> corrMoveList;
+    public ArrayList<Move> mList = new ArrayList<>();
+
+    public void setGame(Game game){this.game = game;}
+
+    public Game getGame() {
+        return game;
+    }
 
     private boolean guiPaused = false;
 
@@ -218,8 +228,49 @@ public class DroidChessController {
             if (animate)
                 setAnimMove(oldPos, m, true);
             updateGUI();
+            mList.add(m);
         } else {
             gui.setSelection(-1);
+        }
+    }
+
+    public final synchronized void makeHumanMoveInList(Move m, boolean animate, ArrayList<Move> mList) {
+        if (!humansTurn()) {
+            return;
+        }
+
+        Position oldPos = new Position(game.currPos());
+
+        if (game.pendingDrawOffer) {
+            ArrayList<Move> moves = new MoveGeneration().legalMoves(oldPos);
+            for (Move m2 : moves) {
+                if (m2.equals(m)) {
+                    if (findValidDrawClaim(TextInfo.moveToUCIString(m))) {
+                        updateGUI();
+                        gui.setSelection(-1);
+                        return;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (mList.isEmpty()) {
+            return; // No moves left in the mList array
+        }
+
+        Move expectedMove = mList.get(0);
+        if (m.equals(expectedMove)) {
+            mList.remove(0); // Remove the expected move from the mList array
+
+            if (doMove(m)) {
+                if (animate) {
+                    setAnimMove(oldPos, m, true);
+                }
+                updateGUI();
+            } else {
+                gui.setSelection(-1);
+            }
         }
     }
 

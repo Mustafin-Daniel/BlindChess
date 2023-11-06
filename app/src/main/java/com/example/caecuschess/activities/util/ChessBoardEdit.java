@@ -167,7 +167,7 @@ public class ChessBoardEdit extends ChessBoard {
                 Paint paint = Position.isDarkSquare(x, y) ? darkPaint : brightPaint;
                 canvas.drawRect(xCrd, yCrd, xCrd+sqSize, yCrd+sqSize, paint);
                 int p = extraPieces(x, y);
-                drawPiece(canvas, xCrd, yCrd, p);
+                drawEditPiece(canvas, xCrd, yCrd, p);
             }
         }
     }
