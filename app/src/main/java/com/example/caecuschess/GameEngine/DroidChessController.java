@@ -32,6 +32,9 @@ public class DroidChessController {
     /** 1 is check and 0 is normal */
     public int type=0;
     public ArrayList<Move> corrMoveList;
+    public ArrayList<Move> mList = new ArrayList<>();
+
+    public void setGame(Game game){this.game = game;}
 
     public Game getGame() {
         return game;
@@ -225,6 +228,7 @@ public class DroidChessController {
             if (animate)
                 setAnimMove(oldPos, m, true);
             updateGUI();
+            mList.add(m);
         } else {
             gui.setSelection(-1);
         }
